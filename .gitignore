@@ -5,3 +5,4 @@ evidence/runs/
 .DS_Store
 *.local
 .env
+data/
