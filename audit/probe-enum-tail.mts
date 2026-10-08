@@ -11,17 +11,20 @@ import { PFT09_THREE_USEFUL_PARCELS as L09 } from '../src/content/levels/pft09-t
 import { PFT10_THE_DETOUR_DIVIDEND as L10 } from '../src/content/levels/pft10-the-detour-dividend.js';
 import { PFT11_MAIL_THE_POST_OFFICE as L11 } from '../src/content/levels/pft11-mail-the-post-office.js';
 import { PFT12_EVERYTHING_MUST_GO as L12 } from '../src/content/levels/pft12-everything-must-go.js';
-import { readFileSync } from 'node:fs';
+import { WINNING_TRACES } from '../tests/lib/winning-traces.js';
 
 const WINDOW = Number(process.env.WINDOW ?? 8);
 const MAX_STATES = Number(process.env.MAX_STATES ?? 1_000_000);
 const MAX_MS = Number(process.env.MAX_MS ?? 90_000);
+const DENY = new Set((process.env.DENY ?? '').split(',').filter(Boolean));
 
-const W='courier-1', L='courier-2', F3='courier-3', S='courier-4', F='ferry-1',
-  L2='courier-2', W4='courier-1', L4='courier-2', L5='courier-2', W5='courier-1',
-  C3='courier-1';
-const body = (n: string): PftAction[] =>
-  eval(`[${readFileSync(`/tmp/${n}.json`, 'utf8').replace(/courierId: L\b/g, 'courierId: L2')}]`);
+const body = (n: string): PftAction[] => {
+  for (const list of Object.values(WINNING_TRACES)) {
+    const t = list.find((x) => x.name === n);
+    if (t) return t.actions as PftAction[];
+  }
+  throw new Error(`no winning trace named ${n}`);
+};
 
 const key = (s: PftPlayState): string =>
   JSON.stringify({ c: s.couriers, p: s.parcels, pi: s.pieces, f: s.ferries, fu: s.fulfilled });
@@ -120,6 +123,7 @@ const run = (name: string, level: PftLevel, traceName: string, slack: number) =>
   const seen = new Map<string, number>();
   const sols: number[] = [];
   const seqs = new Set<string>();
+  const msets = new Set<string>();
   let explored = 0, capped = false;
   const t0 = Date.now();
   const rec = (d: number, plan: PftAction[]): void => {
@@ -127,17 +131,24 @@ const run = (name: string, level: PftLevel, traceName: string, slack: number) =>
     const st = engine.currentState;
     if (st.completed) {
       const seq = JSON.stringify(plan);
-      if (!seqs.has(seq)) { seqs.add(seq); sols.push(d); }
+      if (!seqs.has(seq)) {
+        seqs.add(seq); sols.push(d);
+        msets.add(JSON.stringify([...plan].map(a => JSON.stringify(a)).sort()));
+      }
       return;
     }
     if (d >= bound || explored >= MAX_STATES || Date.now() - t0 > MAX_MS) { if (d >= bound) {} else capped = true; return; }
     for (const a of cand(level, st)) {
+      if (DENY.has(a.type)) continue;
       const r = engine.commit(engine.propose('e', `e-${explored}`, a));
       if (!r.ok) continue;
       explored++;
       if (engine.currentState.completed) {
         const seq = JSON.stringify([...plan, a]);
-        if (!seqs.has(seq)) { seqs.add(seq); sols.push(d + 1); }
+        if (!seqs.has(seq)) {
+          seqs.add(seq); sols.push(d + 1);
+          msets.add(JSON.stringify([...plan, a].map(x => JSON.stringify(x)).sort()));
+        }
         engine.undo(); continue;
       }
       const k = key(engine.currentState);
@@ -151,9 +162,17 @@ const run = (name: string, level: PftLevel, traceName: string, slack: number) =>
   rec(cut, trace.slice(0, cut));
   const byLen = new Map<number, number>();
   for (const d of sols) byLen.set(d, (byLen.get(d) ?? 0) + 1);
+  const byLenSets = new Map<number, Set<string>>();
+  for (const m of msets) {
+    const n = (JSON.parse(m) as string[]).length;
+    if (!byLenSets.has(n)) byLenSets.set(n, new Set());
+    byLenSets.get(n)!.add(m);
+  }
+  const byLenDistinct = Object.fromEntries([...byLenSets].map(([k, v]) => [k, v.size]).sort((a, b) => a[0] - b[0]));
   console.log(`${name}: window=${WINDOW} bound=${bound} explored=${explored} capped=${capped} ` +
-    `ms=${Date.now() - t0} completions=${sols.length} ` +
-    `byLen=${JSON.stringify(Object.fromEntries([...byLen].sort((a, b) => a[0] - b[0])))}`);
+    `ms=${Date.now() - t0} completions=${sols.length} distinctMultisets=${msets.size} ` +
+    `byLen=${JSON.stringify(Object.fromEntries([...byLen].sort((a, b) => a[0] - b[0])))} ` +
+    `distinctByLen=${JSON.stringify(byLenDistinct)}`);
 };
 
 const jobs: Record<string, [PftLevel, string, number]> = {
