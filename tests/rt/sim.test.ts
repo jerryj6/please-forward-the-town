@@ -214,7 +214,7 @@ describe("real-time simulation", () => {
 
   it("lifting the west plank from the L3 hub strands the courier away from X", () => {
     const world = createWorld(LEVELS[2]!, ["solo"]);
-    moveTo(world, "solo", 6, 4);
+    moveTo(world, "solo", 6, 3);
     const events = press(world, "solo");
     expect(events.some((event) => event.type === "pickup" && event.itemKind === "plank")).toBe(true);
     for (let tick = 0; tick < 20; tick += 1) step(world, new Map([["solo", input(-100)]]));
@@ -286,6 +286,56 @@ describe("real-time simulation", () => {
     expect(world.orders[0]!.fulfilled).toBe(true);
   });
 
+  it("delivers a plank from diagonally beside the Museum instead of dropping it", () => {
+    const world = createWorld(LEVELS[0]!, ["solo"]);
+    moveTo(world, "solo", 7, 3);
+    const pickupEvents = press(world, "solo", -100);
+    expect(pickupEvents.some((event) => event.type === "pickup" && event.itemKind === "plank")).toBe(true);
+    moveTo(world, "solo", 13, 3);
+    const plank = [...world.items.values()].find((item) => item.kind === "plank" && item.spawn.x === 6)!;
+    expect(snapshot(world).players[0]!.action).toEqual({
+      verb: "deliver",
+      x: 14,
+      y: 4,
+      itemId: plank.id,
+    });
+    const events = press(world, "solo");
+    expect(events.some((event) => event.type === "deliver" && event.itemId === plank.id)).toBe(true);
+    expect(plank.state).toBe("delivered");
+  });
+
+  it("reports pickup, delivery, and deployment previews in snapshots", () => {
+    const world = createWorld(LEVELS[0]!, ["solo"]);
+    moveThrough(world, "solo", [3, 3], [3, 2]);
+    const lantern = [...world.items.values()].find((item) => item.kind === "lantern")!;
+    expect(snapshot(world).players[0]!.action).toEqual({
+      verb: "pickup",
+      x: 3,
+      y: 2,
+      itemId: lantern.id,
+    });
+    press(world, "solo");
+    moveThrough(world, "solo", [3, 3], [13, 3]);
+    expect(snapshot(world).players[0]!.action).toEqual({
+      verb: "deliver",
+      x: 14,
+      y: 2,
+      itemId: lantern.id,
+    });
+
+    const deployWorld = createWorld(LEVELS[0]!, ["deploy"]);
+    moveTo(deployWorld, "deploy", 11, 3);
+    press(deployWorld, "deploy", 100);
+    moveThrough(deployWorld, "deploy", [11, 4], [11, 3]);
+    const plank = [...deployWorld.items.values()].find((item) => item.kind === "plank" && item.spawn.x === 12)!;
+    expect(snapshot(deployWorld).players[0]!.action).toEqual({
+      verb: "deploy",
+      x: 12,
+      y: 3,
+      itemId: plank.id,
+    });
+  });
+
   it("splash returns carried cargo to its authored spawn and respawns after 40 ticks", () => {
     const world = createWorld(LEVELS[0]!, ["a", "b"]);
     moveThrough(world, "a", [3, 3], [3, 2]);
@@ -299,6 +349,7 @@ describe("real-time simulation", () => {
     expect(lantern.state).toBe("ground");
     expect(lantern.pos).toEqual(lantern.spawn);
     expect(world.players.get("a")!.state).toBe("splash");
+    expect(snapshot(world).players.find((player) => player.id === "a")!.action).toBeNull();
     for (let tick = 0; tick < 39; tick += 1) step(world, new Map());
     expect(world.players.get("a")!.state).toBe("splash");
     expect(step(world, new Map())).toContainEqual({ type: "respawn", playerId: "a" });

@@ -4,8 +4,8 @@ export const LEVELS: LevelDefinition[] = [
   {
     id: "L1",
     title: "The Last Crossing",
-    timeLimitSec: 90,
-    stars: { three: 45, two: 20 },
+    timeLimitSec: 120,
+    stars: { three: 60, two: 30 },
     map: [
       "~~~~~~~~~~~~~~~~~~",
       "~~....~~~~~~~~~~~~",

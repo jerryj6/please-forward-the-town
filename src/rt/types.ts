@@ -14,6 +14,13 @@ export interface OrderDefinition {
   label: string;
 }
 
+export interface ActionPlan {
+  verb: "deploy" | "deliver" | "drop" | "pickup" | "lift";
+  x: number;
+  y: number;
+  itemId: string;
+}
+
 export interface LevelDefinition {
   id: string;
   title: string;
@@ -99,6 +106,7 @@ export interface WorldSnapshot {
     carrying: string | null;
     state: Player["state"];
     splashTicks: number;
+    action: ActionPlan | null;
   }>;
   items: Array<{
     id: string;

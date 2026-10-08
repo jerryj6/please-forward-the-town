@@ -1,4 +1,5 @@
 import type {
+  ActionPlan,
   Facing,
   Input,
   Item,
@@ -120,20 +121,12 @@ function checkSplash(world: World, events: SimEvent[]): void {
   }
 }
 
-function deliverAtZone(world: World, player: Player, tile: Point, events: SimEvent[]): boolean {
+function deliveryOrder(world: World, item: Item, tile: Point) {
   const zone = charAt(world, tile.x, tile.y);
-  if (!zone || zone < "a" || zone > "z" || !player.carrying) return false;
-  const item = world.items.get(player.carrying);
-  if (!item) return false;
-  const order = world.orders.find((candidate) =>
+  if (!zone || zone < "a" || zone > "z") return undefined;
+  return world.orders.find((candidate) =>
     !candidate.fulfilled && candidate.itemKind === item.kind && candidate.zone === zone,
   );
-  if (!order) return false;
-  item.state = "delivered";
-  order.fulfilled = true;
-  player.carrying = null;
-  events.push({ type: "deliver", playerId: player.id, itemId: item.id, orderId: order.id, label: order.label });
-  return true;
 }
 
 function actionCandidates(player: Player): Point[] {
@@ -155,7 +148,24 @@ function actionCandidates(player: Player): Point[] {
       dot: offset.x * forward.x + offset.y * forward.y,
     }))
     .sort((a, b) => b.dot - a.dot || a.order - b.order);
-  const candidates = [facingTile, underfoot, ...orthogonal.map(({ point }) => point)];
+  const diagonal = [
+    { x: -1, y: -1 },
+    { x: 1, y: -1 },
+    { x: 1, y: 1 },
+    { x: -1, y: 1 },
+  ]
+    .map((offset, index) => ({
+      point: { x: underfoot.x + offset.x, y: underfoot.y + offset.y },
+      order: index,
+      dot: offset.x * forward.x + offset.y * forward.y,
+    }))
+    .sort((a, b) => b.dot - a.dot || a.order - b.order);
+  const candidates = [
+    facingTile,
+    underfoot,
+    ...orthogonal.map(({ point }) => point),
+    ...diagonal.map(({ point }) => point),
+  ];
   const seen = new Set<string>();
   return candidates.filter((candidate) => {
     const candidateKey = key(candidate.x, candidate.y);
@@ -165,53 +175,40 @@ function actionCandidates(player: Player): Point[] {
   });
 }
 
-function doAction(world: World, player: Player, events: SimEvent[]): void {
+export function planAction(world: World, player: Player): ActionPlan | null {
   const underfoot = tileAt(player.pos);
   const candidates = actionCandidates(player);
-
   const carried = player.carrying ? world.items.get(player.carrying) : undefined;
-  if (player.carrying && !carried) {
-    player.carrying = null;
-    return;
-  }
+  if (player.carrying && !carried) return null;
 
   if (carried?.kind === "plank") {
     for (const target of candidates) {
       if (!isSocket(world, target.x, target.y) || world.sockets.has(key(target.x, target.y))) continue;
-      carried.state = "deployed";
-      carried.pos = target;
-      world.sockets.set(key(target.x, target.y), carried.id);
-      player.carrying = null;
-      events.push({ type: "deploy", playerId: player.id, itemId: carried.id, x: target.x, y: target.y });
-      return;
+      return { verb: "deploy", x: target.x, y: target.y, itemId: carried.id };
     }
   }
 
   if (carried) {
     for (const target of candidates) {
-      if (deliverAtZone(world, player, target, events)) return;
+      if (deliveryOrder(world, carried, target)) {
+        return { verb: "deliver", x: target.x, y: target.y, itemId: carried.id };
+      }
     }
     for (const target of candidates) {
       if (
         isGround(world, target.x, target.y) &&
         !findItemAt(world, target.x, target.y, "ground")
       ) {
-        carried.state = "ground";
-        carried.pos = target;
-        player.carrying = null;
-        return;
+        return { verb: "drop", x: target.x, y: target.y, itemId: carried.id };
       }
     }
-    return;
+    return null;
   }
 
   for (const target of candidates) {
     const groundItem = findItemAt(world, target.x, target.y, "ground");
     if (!groundItem) continue;
-    groundItem.state = "carried";
-    player.carrying = groundItem.id;
-    events.push({ type: "pickup", playerId: player.id, itemId: groundItem.id, itemKind: groundItem.kind });
-    return;
+    return { verb: "pickup", x: target.x, y: target.y, itemId: groundItem.id };
   }
 
   for (const target of candidates) {
@@ -219,12 +216,61 @@ function doAction(world: World, player: Player, events: SimEvent[]): void {
     const deployedId = world.sockets.get(key(target.x, target.y));
     const deployed = deployedId ? world.items.get(deployedId) : undefined;
     if (!deployed || deployed.kind !== "plank" || deployed.state !== "deployed") continue;
-    world.sockets.delete(key(target.x, target.y));
-    deployed.state = "carried";
-    player.carrying = deployed.id;
-    events.push({ type: "pickup", playerId: player.id, itemId: deployed.id, itemKind: deployed.kind });
+    return { verb: "lift", x: target.x, y: target.y, itemId: deployed.id };
+  }
+  return null;
+}
+
+function applyAction(world: World, player: Player, plan: ActionPlan, events: SimEvent[]): void {
+  const item = world.items.get(plan.itemId);
+  if (!item) return;
+
+  if (plan.verb === "deploy") {
+    item.state = "deployed";
+    item.pos = { x: plan.x, y: plan.y };
+    world.sockets.set(key(plan.x, plan.y), item.id);
+    player.carrying = null;
+    events.push({ type: "deploy", playerId: player.id, itemId: item.id, x: plan.x, y: plan.y });
     return;
   }
+
+  if (plan.verb === "deliver") {
+    const order = deliveryOrder(world, item, { x: plan.x, y: plan.y });
+    if (!order) return;
+    item.state = "delivered";
+    order.fulfilled = true;
+    player.carrying = null;
+    events.push({ type: "deliver", playerId: player.id, itemId: item.id, orderId: order.id, label: order.label });
+    return;
+  }
+
+  if (plan.verb === "drop") {
+    item.state = "ground";
+    item.pos = { x: plan.x, y: plan.y };
+    player.carrying = null;
+    return;
+  }
+
+  if (plan.verb === "pickup") {
+    item.state = "carried";
+    player.carrying = item.id;
+    events.push({ type: "pickup", playerId: player.id, itemId: item.id, itemKind: item.kind });
+    return;
+  }
+
+  world.sockets.delete(key(plan.x, plan.y));
+  item.state = "carried";
+  player.carrying = item.id;
+  events.push({ type: "pickup", playerId: player.id, itemId: item.id, itemKind: item.kind });
+}
+
+function doAction(world: World, player: Player, events: SimEvent[]): void {
+  if (player.carrying && !world.items.has(player.carrying)) {
+    player.carrying = null;
+    return;
+  }
+  const plan = planAction(world, player);
+  if (plan) applyAction(world, player, plan, events);
 }
 
 export function createWorld(level: LevelDefinition, playerIds: string[]): World {
@@ -391,6 +437,7 @@ export function snapshot(world: World): WorldSnapshot {
       carrying: player.carrying,
       state: player.state,
       splashTicks: player.splashTicks,
+      action: player.state === "normal" ? planAction(world, player) : null,
     })),
     items: [...world.items.values()].map((item) => ({
       id: item.id,
