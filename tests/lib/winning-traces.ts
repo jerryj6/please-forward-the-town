@@ -397,6 +397,38 @@ export const WINNING_TRACES: Record<string, readonly WinningTrace[]> = {
   { type: 'pack', courierId: W, pieceId: 'bridge-1' }, // the span lifted at its East foot
   { type: 'deliver', courierId: W, itemId: 'bridge-1', recipientId: 'museum' },
 ] },
+    /** Plan C — "Both parcels down the wire": mail cider AND deeds, ferry
+     * granite + the bridge sale only (27 moves — discovered in pass-3
+     * automated playtest, one under the reference par). */
+    { name: "PFT10_TRACE_C", actions: [
+  { type: 'travel', courierId: F3, path: ['west'] },
+  { type: 'pickup', courierId: F3, itemId: 'cider' },
+  { type: 'travel', courierId: F3, path: ['north'] },
+  { type: 'drop', courierId: F3, itemId: 'cider' },
+  { type: 'send', courierId: F3, linkId: 'link-north-east', parcelId: 'cider' },
+  { type: 'travel', courierId: F3, path: ['west'] }, // West gate
+  { type: 'travel', courierId: L, path: ['west', 'north'] },
+  { type: 'send', courierId: L, linkId: 'link-north-east', parcelId: 'deeds' },
+  { type: 'pack', courierId: L, pieceId: 'mailbox-1' },
+  { type: 'travel', courierId: L, path: ['west', 'middle'] },
+  { type: 'deliver', courierId: L, itemId: 'mailbox-1', recipientId: 'depot' },
+  { type: 'travel', courierId: L, path: ['west', 'north'] }, // North post
+  { type: 'ride_ferry', courierId: S, ferryId: F, to: 'east' },
+  { type: 'pickup', courierId: S, itemId: 'cider' },
+  { type: 'deliver', courierId: S, itemId: 'cider', recipientId: 'tavern' },
+  { type: 'pickup', courierId: S, itemId: 'deeds' },
+  { type: 'deliver', courierId: S, itemId: 'deeds', recipientId: 'registry' },
+  { type: 'ride_ferry', courierId: S, ferryId: F, to: 'middle' }, // dock office
+  { type: 'pickup', courierId: W, itemId: 'granite' },
+  { type: 'ride_ferry', courierId: W, ferryId: F, to: 'east' },
+  { type: 'travel', courierId: W, path: ['slip'] },
+  { type: 'deliver', courierId: W, itemId: 'granite', recipientId: 'monument' },
+  { type: 'travel', courierId: W, path: ['east'] },
+  { type: 'ride_ferry', courierId: W, ferryId: F, to: 'middle' },
+  { type: 'pack', courierId: W, pieceId: 'bridge-1' },
+  { type: 'ride_ferry', courierId: W, ferryId: F, to: 'east' },
+  { type: 'deliver', courierId: W, itemId: 'bridge-1', recipientId: 'museum' },
+] },
   ],
   "PFT-11": [
     { name: "PFT11_TRACE", actions: PFT11_TRACE },

@@ -39,9 +39,7 @@ const SPECS: Spec[] = [
   { id: 'pft-07', level: L07, traces: ['PFT07_TRACE'] },
   { id: 'pft-08', level: L08, traces: ['PFT08_TRACE'] },
   { id: 'pft-09', level: L09, traces: ['PFT09_TRACE'] },
-  // TODO: 'PFT10_TRACE_C' — the pass-3 under-par plan is documented in LEVELS.md
-  // but its trace const never reached upstream; re-enable when shipped.
-  { id: 'pft-10', level: L10, traces: ['PFT10_TRACE_A', 'PFT10_TRACE_B'] },
+  { id: 'pft-10', level: L10, traces: ['PFT10_TRACE_A', 'PFT10_TRACE_B', 'PFT10_TRACE_C'] },
   { id: 'pft-11', level: L11, traces: ['PFT11_TRACE'] },
   { id: 'pft-12', level: L12, traces: ['PFT12_TRACE_A', 'PFT12_TRACE_B'] },
 ];

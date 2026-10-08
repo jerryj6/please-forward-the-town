@@ -482,6 +482,39 @@ const PFT10_TRACE_B: PftAction[] = [
   { type: 'deliver', courierId: W, itemId: 'bridge-1', recipientId: 'museum' },
 ];
 
+/** Plan C — "Both parcels down the wire": mail cider AND deeds, ferry granite
+ * + the bridge sale only (27 moves — discovered in pass-3 automated playtest,
+ * one under the reference par). */
+const PFT10_TRACE_C: PftAction[] = [
+  { type: 'travel', courierId: F3, path: ['west'] },
+  { type: 'pickup', courierId: F3, itemId: 'cider' },
+  { type: 'travel', courierId: F3, path: ['north'] },
+  { type: 'drop', courierId: F3, itemId: 'cider' },
+  { type: 'send', courierId: F3, linkId: 'link-north-east', parcelId: 'cider' },
+  { type: 'travel', courierId: F3, path: ['west'] }, // West gate
+  { type: 'travel', courierId: L, path: ['west', 'north'] },
+  { type: 'send', courierId: L, linkId: 'link-north-east', parcelId: 'deeds' },
+  { type: 'pack', courierId: L, pieceId: 'mailbox-1' },
+  { type: 'travel', courierId: L, path: ['west', 'middle'] },
+  { type: 'deliver', courierId: L, itemId: 'mailbox-1', recipientId: 'depot' },
+  { type: 'travel', courierId: L, path: ['west', 'north'] }, // North post
+  { type: 'ride_ferry', courierId: S, ferryId: F, to: 'east' },
+  { type: 'pickup', courierId: S, itemId: 'cider' },
+  { type: 'deliver', courierId: S, itemId: 'cider', recipientId: 'tavern' },
+  { type: 'pickup', courierId: S, itemId: 'deeds' },
+  { type: 'deliver', courierId: S, itemId: 'deeds', recipientId: 'registry' },
+  { type: 'ride_ferry', courierId: S, ferryId: F, to: 'middle' }, // dock office
+  { type: 'pickup', courierId: W, itemId: 'granite' },
+  { type: 'ride_ferry', courierId: W, ferryId: F, to: 'east' },
+  { type: 'travel', courierId: W, path: ['slip'] },
+  { type: 'deliver', courierId: W, itemId: 'granite', recipientId: 'monument' },
+  { type: 'travel', courierId: W, path: ['east'] },
+  { type: 'ride_ferry', courierId: W, ferryId: F, to: 'middle' },
+  { type: 'pack', courierId: W, pieceId: 'bridge-1' },
+  { type: 'ride_ferry', courierId: W, ferryId: F, to: 'east' },
+  { type: 'deliver', courierId: W, itemId: 'bridge-1', recipientId: 'museum' },
+];
+
 describe('PFT-10 The Detour Dividend — acceptance (PFT-D, two network plans)', () => {
   it('plan A passes: ferry freight, bridge anchored on the west creek', () => {
     const res = simulate(L10, PFT10_TRACE_A, SEED);
@@ -526,6 +559,25 @@ describe('PFT-10 The Detour Dividend — acceptance (PFT-D, two network plans)',
     expect(
       res.events.filter((e) => e.type === 'piece.packed' && e.entityId === 'bridge-1'),
     ).toHaveLength(2);
+  });
+
+  it('plan C passes: both parcels down the wire — 27 moves, one under par', () => {
+    const res = simulate(L10, PFT10_TRACE_C, SEED);
+    expect(res.success).toBe(true);
+    expect(res.finalState.completed).toBe(true);
+    expect(res.evaluation.allObservationsPass).toBe(true);
+    for (const o of L10.orders) expect(res.finalState.fulfilled[o.id]).toBe(true);
+    expect(res.stats.moves).toBe(27);
+    // Signature: two sends, five ferry legs (receiver shuttle + granite + bridge), no deploys.
+    expect(
+      res.committed.filter((c) => (c.action as PftAction).type === 'send'),
+    ).toHaveLength(2);
+    expect(
+      res.committed.filter((c) => (c.action as PftAction).type === 'ride_ferry'),
+    ).toHaveLength(5);
+    expect(
+      res.committed.filter((c) => (c.action as PftAction).type === 'deploy'),
+    ).toHaveLength(0);
   });
 
   it('the two plans are not permutations — different deployment/commitment signatures', () => {
