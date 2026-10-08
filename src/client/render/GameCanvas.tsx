@@ -1,18 +1,20 @@
 import { Application, Assets, Container, Graphics, Sprite, Text, TextStyle, Texture } from "pixi.js";
 import { useEffect, useRef, useState } from "react";
 import type { LevelDefinition, WorldSnapshot } from "../../rt/types.js";
-import { createIsoCamera } from "./iso.js";
+import { createDioramaCamera, type DioramaCamera } from "./iso.js";
 
-const COURIER_IDLE = "/assets/sprites/courier/pft-courier-parcels-00.png";
-const COURIER_WALK = "/assets/sprites/courier/pft-courier-parcels-01.png";
-const CRATE = "/assets/sprites/courier/pft-courier-parcels-04.png";
-const PLANK = "/assets/sprites/courier/pft-courier-parcels-05.png";
-const COLORS: Record<string, number> = {
-  red: 0xe26955,
-  blue: 0x547da4,
-  gold: 0xe3ac4d,
-  green: 0x67a27b,
-};
+const TEXTURES = {
+  idle: "/assets/sprites/courier/pft-courier-parcels-00.png",
+  walk: "/assets/sprites/courier/pft-courier-parcels-01.png",
+  crate: "/assets/sprites/courier/pft-courier-parcels-04.png",
+  plank: "/assets/sprites/courier/pft-courier-parcels-05.png",
+  postbox: "/assets/sprites/env/pft-env-kit-06.png",
+} as const;
+type TextureKey = keyof typeof TEXTURES;
+
+const COLORS: Record<string, number> = { red: 0xe26955, blue: 0x4f86c6, gold: 0xe8b04a, green: 0x5fae73 };
+const WATER = 0x3f8e9b;
+const SPLASH_TICKS = 40;
 
 export interface PlayerDisplay {
   name: string;
@@ -25,18 +27,183 @@ interface Props {
   players: Record<string, PlayerDisplay>;
 }
 
-function diamond(graphics: Graphics, x: number, y: number, tw: number, th: number, color: number, alpha = 1): void {
-  graphics
-    .moveTo(x, y - th / 2)
-    .lineTo(x + tw / 2, y)
-    .lineTo(x, y + th / 2)
-    .lineTo(x - tw / 2, y)
-    .closePath()
-    .fill({ color, alpha });
+type Tile = string | undefined;
+const isSocket = (t: Tile): boolean => t === "=" || t === "-";
+const isSandbar = (t: Tile): boolean => t === ",";
+const isLand = (t: Tile): boolean => t !== undefined && t !== "~" && !isSocket(t) && !isSandbar(t);
+const isZone = (t: Tile): boolean => t !== undefined && t >= "a" && t <= "z";
+
+function hash(x: number, y: number): number {
+  const n = Math.sin(x * 127.1 + y * 311.7) * 43758.5453;
+  return n - Math.floor(n);
 }
 
-function polygon(graphics: Graphics, points: number[], color: number, alpha = 1): void {
-  graphics.poly(points).fill({ color, alpha });
+function floodAtSec(level: LevelDefinition): number | undefined {
+  return (level as LevelDefinition & { sandbarFloodsAtSec?: number }).sandbarFloodsAtSec;
+}
+
+function tideProgress(level: LevelDefinition, world: WorldSnapshot | null): number {
+  if (!world) return 0;
+  const total = level.timeLimitSec * 20;
+  return Math.max(0, Math.min(1, 1 - world.timeRemainingTicks / total));
+}
+
+function sandbarFlooded(level: LevelDefinition, world: WorldSnapshot | null): boolean {
+  const at = floodAtSec(level);
+  if (at === undefined || !world) return false;
+  const flag = (world as WorldSnapshot & { sandbarFlooded?: boolean }).sandbarFlooded;
+  return flag ?? world.timeRemainingTicks <= at * 20;
+}
+
+/** Visible height of a block's front face above the waterline; the tide eats it. */
+function exposedFace(cam: DioramaCamera, progress: number): number {
+  return cam.face * (0.92 - 0.55 * progress);
+}
+
+function drawTerrain(g: Graphics, level: LevelDefinition, cam: DioramaCamera, progress: number, flooded: boolean): void {
+  const map = level.map;
+  const T = cam.tile;
+  const D = cam.depth;
+  const face = exposedFace(cam, progress);
+  const at = (x: number, y: number): Tile => map[y]?.[x];
+
+  for (let y = 0; y < map.length; y += 1) {
+    const row = map[y]!;
+    for (let x = 0; x < row.length; x += 1) {
+      const tile = row[x];
+      const p = cam.project(x, y);
+      if (isSandbar(tile)) {
+        if (flooded) {
+          g.rect(p.x, p.y + D * 0.3, T, D * 0.5).fill({ color: 0x7cc3c2, alpha: 0.35 });
+        } else {
+          const low = face * 0.28;
+          if (!isLand(at(x, y + 1)) && !isSandbar(at(x, y + 1))) g.rect(p.x, p.y + D, T, low).fill({ color: 0xb79a63 });
+          g.rect(p.x, p.y, T, D).fill({ color: hash(x, y) > 0.5 ? 0xe4cf98 : 0xdcc58c });
+          g.rect(p.x + T * 0.15, p.y + D * (0.3 + hash(y, x) * 0.4), T * 0.3, 1.5).fill({ color: 0xc8ae74, alpha: 0.8 });
+        }
+        continue;
+      }
+      if (!isLand(tile)) continue;
+
+      const below = at(x, y + 1);
+      if (!isLand(below)) {
+        g.rect(p.x, p.y + D, T, face).fill({ color: 0x8a7558 });
+        g.rect(p.x, p.y + D, T, face * 0.28).fill({ color: 0x6e8a4c });
+        for (let i = 0; i < 3; i += 1) {
+          const sx = p.x + T * (0.12 + 0.3 * i + hash(x + i, y) * 0.08);
+          g.rect(sx, p.y + D + face * 0.4, T * 0.22, face * 0.32).fill({ color: 0x9d8766, alpha: 0.9 });
+        }
+        g.rect(p.x, p.y + D + face - 2, T, 3).fill({ color: 0xe9f6f0, alpha: 0.75 });
+      }
+
+      let top: number;
+      if (isZone(tile)) top = (x + y) % 2 === 0 ? 0xe9d6a6 : 0xe1cc98;
+      else if (tile === "X") top = 0xb98a58;
+      else top = hash(x, y) > 0.5 ? 0x93c46f : 0x8aba67;
+      g.rect(p.x, p.y, T, D).fill({ color: top });
+
+      if (isZone(tile)) {
+        g.rect(p.x + 1, p.y + 1, T - 2, D - 2).stroke({ color: 0xbfa36e, width: 1, alpha: 0.7 });
+      } else if (tile === "X") {
+        for (let i = 1; i < 5; i += 1) g.rect(p.x, p.y + (D * i) / 5, T, 1.5).fill({ color: 0x8a6239, alpha: 0.8 });
+      } else {
+        for (let i = 0; i < 3; i += 1) {
+          const h = hash(x * 3 + i, y * 7);
+          const tx = p.x + T * (0.1 + h * 0.8);
+          const ty = p.y + D * (0.2 + hash(y + i, x) * 0.65);
+          g.moveTo(tx, ty).lineTo(tx - 2, ty - 5).moveTo(tx + 2, ty).lineTo(tx + 3, ty - 4).stroke({ color: 0x5e9a4a, width: 1.4 });
+        }
+        if (hash(x + 11, y + 5) > 0.82) {
+          const fx = p.x + T * (0.2 + hash(y, x + 3) * 0.6);
+          const fy = p.y + D * (0.3 + hash(x, y + 9) * 0.5);
+          g.circle(fx, fy, 2.4).fill({ color: hash(x, y + 2) > 0.5 ? 0xf2ede0 : 0xf3a889 });
+        }
+      }
+      if (!isLand(at(x, y - 1))) g.rect(p.x, p.y, T, 3).fill({ color: 0xc4e39a, alpha: tile === "X" || isZone(tile) ? 0.4 : 0.9 });
+      if (!isLand(at(x - 1, y))) g.rect(p.x, p.y, 2, D).fill({ color: 0x5b7f45, alpha: 0.5 });
+      if (!isLand(at(x + 1, y))) g.rect(p.x + T - 2, p.y, 2, D).fill({ color: 0x5b7f45, alpha: 0.5 });
+    }
+  }
+}
+
+function drawRipples(g: Graphics, width: number, height: number, time: number): void {
+  for (let i = 0; i < 70; i += 1) {
+    const speed = 6 + hash(i, 3) * 10;
+    const x = ((hash(i, 1) * width + (time / 1000) * speed) % (width + 60)) - 30;
+    const y = hash(i, 2) * height;
+    const len = 10 + hash(i, 4) * 22;
+    const alpha = 0.08 + 0.1 * (0.5 + 0.5 * Math.sin(time / 700 + i));
+    g.rect(x, y, len, 2).fill({ color: 0xd6f1ec, alpha });
+  }
+}
+
+function drawSocket(
+  g: Graphics,
+  level: LevelDefinition,
+  cam: DioramaCamera,
+  x: number,
+  y: number,
+  deployed: boolean,
+  highlight: number,
+  face: number,
+): void {
+  const T = cam.tile;
+  const D = cam.depth;
+  const p = cam.project(x, y);
+  const left = level.map[y]?.[x - 1];
+  const right = level.map[y]?.[x + 1];
+  const horizontal = (isLand(left) || isSocket(left)) && (isLand(right) || isSocket(right));
+  const box = horizontal
+    ? { x: p.x - T * 0.06, y: p.y + D * 0.14, w: T * 1.12, h: D * 0.72 }
+    : { x: p.x + T * 0.16, y: p.y - D * 0.06, w: T * 0.68, h: D * 1.12 };
+  if (deployed) {
+    g.rect(box.x, box.y + box.h, box.w, face * 0.32).fill({ color: 0x5a3a20 });
+    g.rect(box.x, box.y, box.w, box.h).fill({ color: 0xb07642 });
+    const boards = 5;
+    for (let i = 1; i < boards; i += 1) {
+      if (horizontal) g.rect(box.x + (box.w * i) / boards, box.y, 2, box.h).fill({ color: 0x6f4526 });
+      else g.rect(box.x, box.y + (box.h * i) / boards, box.w, 2).fill({ color: 0x6f4526 });
+    }
+    if (horizontal) {
+      g.rect(box.x, box.y - 1, box.w, 3).fill({ color: 0xe0c99a });
+      g.rect(box.x, box.y + box.h - 2, box.w, 3).fill({ color: 0xe0c99a });
+    } else {
+      g.rect(box.x - 1, box.y, 3, box.h).fill({ color: 0xe0c99a });
+      g.rect(box.x + box.w - 2, box.y, 3, box.h).fill({ color: 0xe0c99a });
+    }
+    g.rect(box.x, box.y, box.w, box.h).stroke({ color: 0x4a2f19, width: 1.5 });
+    return;
+  }
+  const alpha = 0.45 + 0.45 * highlight;
+  const dash = Math.max(5, T / 10);
+  const edges: Array<[number, number, number, number]> = [
+    [box.x, box.y, box.x + box.w, box.y],
+    [box.x + box.w, box.y, box.x + box.w, box.y + box.h],
+    [box.x + box.w, box.y + box.h, box.x, box.y + box.h],
+    [box.x, box.y + box.h, box.x, box.y],
+  ];
+  for (const [x1, y1, x2, y2] of edges) {
+    const length = Math.hypot(x2 - x1, y2 - y1);
+    for (let d = 0; d < length; d += dash * 2) {
+      const a = d / length;
+      const b = Math.min(1, (d + dash) / length);
+      g.moveTo(x1 + (x2 - x1) * a, y1 + (y2 - y1) * a).lineTo(x1 + (x2 - x1) * b, y1 + (y2 - y1) * b);
+    }
+  }
+  g.stroke({ color: 0xfff6de, width: 2.5, alpha });
+  if (highlight > 0) g.rect(box.x, box.y, box.w, box.h).fill({ color: 0xfff1c4, alpha: 0.12 * highlight });
+}
+
+function drawLantern(g: Graphics, x: number, y: number, size: number, time: number): void {
+  const glow = 0.22 + 0.06 * Math.sin(time / 260);
+  g.circle(x, y - size * 0.55, size * 0.9).fill({ color: 0xffe08a, alpha: glow });
+  g.rect(x - size * 0.06, y - size * 1.25, size * 0.12, size * 0.16).fill({ color: 0x2f2d2a });
+  g.circle(x, y - size * 1.24, size * 0.12).stroke({ color: 0x2f2d2a, width: 2 });
+  g.roundRect(x - size * 0.32, y - size * 1.1, size * 0.64, size * 0.14, 3).fill({ color: 0x3d3a34 });
+  g.roundRect(x - size * 0.26, y - size * 0.96, size * 0.52, size * 0.72, 4).fill({ color: 0xffcf5a });
+  g.roundRect(x - size * 0.26, y - size * 0.96, size * 0.52, size * 0.72, 4).stroke({ color: 0x3d3a34, width: 2.5 });
+  g.rect(x - 1, y - size * 0.96, 2, size * 0.72).fill({ color: 0x3d3a34 });
+  g.roundRect(x - size * 0.34, y - size * 0.26, size * 0.68, size * 0.16, 3).fill({ color: 0x3d3a34 });
 }
 
 export function GameCanvas({ level, world, players }: Props): JSX.Element {
@@ -54,219 +221,286 @@ export function GameCanvas({ level, world, players }: Props): JSX.Element {
     let initialized = false;
     let destroyed = false;
     let rendered = false;
-    let scene: Container | null = null;
-    let lastDraw = 0;
-    const lastPositions = new Map<string, string>();
     const destroy = (): void => {
       if (!initialized || destroyed) return;
       destroyed = true;
       app.destroy({ removeView: true }, { children: true });
     };
 
-    void app.init({ resizeTo: element, background: "#b7d5cb", antialias: true, preserveDrawingBuffer: true }).then(async () => {
+    void app.init({ resizeTo: element, background: WATER, antialias: true, preserveDrawingBuffer: true, autoDensity: true, resolution: Math.min(2, window.devicePixelRatio || 1) }).then(async () => {
       initialized = true;
       if (disposed) {
         destroy();
         return;
       }
       element.appendChild(app.canvas);
-      scene = new Container();
-      app.stage.addChild(scene);
-      const [idle, walking, crate, plank] = await Promise.all([
-        Assets.load<Texture>(COURIER_IDLE),
-        Assets.load<Texture>(COURIER_WALK),
-        Assets.load<Texture>(CRATE),
-        Assets.load<Texture>(PLANK),
-      ]);
+      const entries = await Promise.all(
+        (Object.keys(TEXTURES) as TextureKey[]).map(async (key) => [key, await Assets.load<Texture>(TEXTURES[key])] as const),
+      );
       if (disposed) return;
+      const tex = Object.fromEntries(entries) as Record<TextureKey, Texture>;
 
-      const drawScene = (timestamp: number): void => {
-        if (timestamp - lastDraw < 50 || !scene) return;
-        lastDraw = timestamp;
-        for (const child of scene.removeChildren()) child.destroy({ children: true });
-        const { world: current, players: playerDisplays, level: currentLevel } = state.current;
+      const waterFx = new Graphics();
+      const terrain = new Graphics();
+      const ground = new Graphics();
+      const actors = new Container();
+      app.stage.addChild(waterFx, terrain, ground, actors);
+
+      const sprites = new Map<string, Sprite>();
+      const graphics = new Map<string, Graphics>();
+      const labels = new Map<string, Text>();
+      const smooth = new Map<string, { x: number; y: number; flip: number; lastMove: number }>();
+      let terrainKey = "";
+
+      const sprite = (key: string, texture: Texture): Sprite => {
+        let s = sprites.get(key);
+        if (!s) {
+          s = new Sprite(texture);
+          s.anchor.set(0.5, 1);
+          sprites.set(key, s);
+        }
+        s.texture = texture;
+        return s;
+      };
+      const pooledGraphics = (key: string): Graphics => {
+        let g = graphics.get(key);
+        if (!g) {
+          g = new Graphics();
+          graphics.set(key, g);
+        }
+        g.clear();
+        return g;
+      };
+      const label = (key: string, text: string, size: number, fill: number, stroke: number): Text => {
+        let t = labels.get(key);
+        if (!t) {
+          t = new Text({
+            text,
+            style: new TextStyle({ fontFamily: "Inter, 'Helvetica Neue', Arial, sans-serif", fontSize: size, fontWeight: "700", fill, stroke: { color: stroke, width: 4 }, letterSpacing: 0.3 }),
+          });
+          t.anchor.set(0.5, 1);
+          labels.set(key, t);
+        }
+        if (t.text !== text) t.text = text;
+        return t;
+      };
+
+      const draw = (time: number): void => {
+        const { world: current, players: displays, level: lvl } = state.current;
         const width = element.clientWidth;
         const height = element.clientHeight;
-        const camera = createIsoCamera(currentLevel.map[0]?.length ?? 1, currentLevel.map.length, width, height);
-        const tw = camera.tileWidth;
-        const th = camera.tileHeight;
-        const elapsed = current?.tick ?? 0;
-        const tiles = new Graphics();
+        const cam = createDioramaCamera(lvl.map, width, height);
+        const T = cam.tile;
+        const D = cam.depth;
+        const progress = tideProgress(lvl, current);
+        const flooded = sandbarFlooded(lvl, current);
+        const face = exposedFace(cam, progress);
 
-        for (let y = 0; y < currentLevel.map.length; y += 1) {
-          const row = currentLevel.map[y]!;
-          for (let x = 0; x < row.length; x += 1) {
-            const tile = row[x]!;
-            const { x: sx, y: sy } = camera.project(x + 0.5, y + 0.5);
-            if (tile === "~") {
-              const wave = Math.sin(elapsed / 9 + x * 0.7 + y * 0.4) * 0.04;
-              diamond(tiles, sx, sy, tw, th, wave > 0 ? 0x79b9c0 : 0x72b2ba, 1);
-              diamond(tiles, sx, sy - th * 0.12, tw * 0.76, th * 0.55, 0xb5d8d0, 0.12);
-              continue;
-            }
-
-            const zone = tile >= "a" && tile <= "z";
-            const isExit = tile === "X";
-            const topColor = zone ? 0xd7c892 : isExit ? 0xe2a86f : (x + y) % 3 === 0 ? 0x8eb489 : 0x9abd8e;
-            const downTile = currentLevel.map[y + 1]?.[x];
-            const depth = Math.max(5, th * 0.25);
-            if (downTile === "~" || downTile === undefined) {
-              const bottomX = sx;
-              const bottomY = sy + th / 2;
-              polygon(tiles, [
-                bottomX - tw / 2, bottomY,
-                bottomX, bottomY + th / 2,
-                bottomX, bottomY + th / 2 + depth,
-                bottomX - tw / 2, bottomY + depth,
-              ], 0x526d68);
-              polygon(tiles, [
-                bottomX, bottomY + th / 2,
-                bottomX + tw / 2, bottomY,
-                bottomX + tw / 2, bottomY + depth,
-                bottomX, bottomY + th / 2 + depth,
-              ], 0x405e5b);
-            }
-            diamond(tiles, sx, sy, tw, th, topColor);
-
-            if (zone || isExit) {
-              const badge = new Graphics();
-              diamond(badge, sx, sy - th * 0.08, tw * 0.62, th * 0.62, isExit ? 0xf4c58c : 0xf0dfaa, 0.38);
-              badge.stroke({ color: isExit ? 0x9e603b : 0x9b8757, width: 1.5, alpha: 0.75 });
-              scene.addChild(badge);
-              if (zone) {
-                const text = new Text({
-                  text: currentLevel.recipients[tile] ?? tile.toUpperCase(),
-                  style: new TextStyle({
-                    fontFamily: "Georgia, serif",
-                    fontSize: Math.max(8, 9 * Math.min(1.2, tw / 64)),
-                    fill: 0x71634a,
-                    fontWeight: "600",
-                  }),
-                });
-                text.anchor.set(0.5);
-                text.position.set(sx, sy - th * 0.02);
-                scene.addChild(text);
-              }
-            }
-            if (tile === "=" || tile === "-") {
-              const deployed = current?.items.some((item) => item.state === "deployed" && item.x === x && item.y === y);
-              if (deployed) {
-                const board = new Graphics();
-                diamond(board, sx, sy - th * 0.04, tw * 0.8, th * 0.64, 0x9a633c);
-                board.stroke({ color: 0x62412f, width: 2 });
-                board.moveTo(sx - tw * 0.2, sy).lineTo(sx + tw * 0.2, sy).stroke({ color: 0xc58b56, width: 1.2 });
-                scene.addChild(board);
-              } else {
-                const outline = new Graphics();
-                for (let segment = 0; segment < 8; segment += 1) {
-                  const angles = [0, Math.PI / 2, Math.PI, Math.PI * 1.5];
-                  const from = angles[Math.floor(segment / 2)]! + (segment % 2) * Math.PI / 8;
-                  const to = from + Math.PI / 8;
-                  outline.moveTo(sx + Math.cos(from) * tw * 0.35, sy + Math.sin(from) * th * 0.35)
-                    .lineTo(sx + Math.cos(to) * tw * 0.35, sy + Math.sin(to) * th * 0.35);
-                }
-                outline.stroke({ color: 0xe9e0bd, width: 1.5, alpha: 0.75 });
-                scene.addChild(outline);
-              }
-            }
-          }
+        const key = `${lvl.id}|${width}x${height}|${Math.round(progress * 100)}|${flooded}`;
+        if (key !== terrainKey) {
+          terrainKey = key;
+          terrain.clear();
+          drawTerrain(terrain, lvl, cam, progress, flooded);
         }
-        scene.addChildAt(tiles, 0);
+        waterFx.clear();
+        drawRipples(waterFx, width, height, time);
 
-        if (current) {
-          const actors = [
-            ...current.items
-              .filter((item) => item.state === "ground")
-              .map((item) => ({ kind: "item" as const, item, depth: item.x + item.y + 0.34 })),
-            ...current.players
-              .map((player) => ({ kind: "player" as const, player, depth: (player.x + player.y) / 1000 })),
-          ].sort((a, b) => a.depth - b.depth);
+        ground.clear();
+        actors.removeChildren();
+        const carryingPlank = current?.players.some((pl) => {
+          const item = current.items.find((it) => it.id === pl.carrying);
+          return item?.kind === "plank";
+        }) ?? false;
+        const pulse = carryingPlank ? 0.5 + 0.5 * Math.sin(time / 180) : 0;
 
-          for (const actor of actors) {
-            if (actor.kind === "item") {
-              const { item } = actor;
-              const point = camera.project(item.x + 0.5, item.y + 0.34);
-              if (item.kind === "lantern") {
-                const icon = new Graphics();
-                icon.circle(point.x, point.y - 13, 10).fill({ color: 0xf1c45f });
-                icon.circle(point.x, point.y - 13, 15).fill({ color: 0xffe49d, alpha: 0.18 });
-                scene.addChild(icon);
-              } else {
-                const sprite = new Sprite(item.kind === "crate" ? crate : plank);
-                sprite.anchor.set(0.5, 1);
-                sprite.width = item.kind === "crate" ? tw * 0.54 : tw * 0.62;
-                sprite.height = item.kind === "crate" ? th * 1.12 : th * 0.58;
-                sprite.position.set(point.x, point.y);
-                scene.addChild(sprite);
-              }
-              continue;
-            }
+        lvl.map.forEach((row, y) => {
+          [...row].forEach((tile, x) => {
+            if (!isSocket(tile)) return;
+            const deployed = current
+              ? current.items.some((it) => it.state === "deployed" && it.x === x && it.y === y)
+              : tile === "=";
+            drawSocket(ground, lvl, cam, x, y, deployed, deployed ? 0 : pulse, face);
+          });
+        });
 
-            const player = actor.player;
-            const wx = player.x / 1000;
-            const wy = player.y / 1000;
-            const point = camera.project(wx, wy);
-            const display = playerDisplays[player.id] ?? { name: "Courier", color: "red" };
-            const color = COLORS[display.color] ?? COLORS.red!;
-            const previous = lastPositions.get(player.id);
-            const positionKey = `${player.x}:${player.y}`;
-            const moving = previous !== undefined && previous !== positionKey;
-            lastPositions.set(player.id, positionKey);
-            const shadow = new Graphics();
-            shadow.ellipse(point.x, point.y + th * 0.1, tw * 0.23, th * 0.16).fill({ color, alpha: 0.7 });
-            scene.addChild(shadow);
-
-            if (player.state === "splash") {
-              const splash = new Graphics();
-              splash.circle(point.x, point.y - th * 0.28, tw * 0.14).fill({ color: 0xd5f0e7, alpha: 0.7 });
-              scene.addChild(splash);
-            } else {
-              const courier = new Sprite(moving ? walking : idle);
-              courier.anchor.set(0.5, 1);
-              courier.width = tw * 0.68;
-              courier.height = th * 1.72;
-              courier.position.set(point.x, point.y + Math.sin(elapsed / 4 + point.x) * 1.2);
-              scene.addChild(courier);
-
-              if (player.carrying) {
-                const carried = current.items.find((item) => item.id === player.carrying);
-                if (carried?.kind === "lantern") {
-                  const light = new Graphics();
-                  light.circle(point.x, point.y - th * 1.55, 7).fill({ color: 0xffd576 });
-                  scene.addChild(light);
-                } else if (carried) {
-                  const carrySprite = new Sprite(carried.kind === "crate" ? crate : plank);
-                  carrySprite.anchor.set(0.5, 1);
-                  carrySprite.width = tw * 0.42;
-                  carrySprite.height = th * 0.68;
-                  carrySprite.position.set(point.x, point.y - th * 1.15);
-                  scene.addChild(carrySprite);
-                }
-              }
-            }
-
-            const name = new Text({
-              text: display.name,
-              style: new TextStyle({
-                fontFamily: "Arial, sans-serif",
-                fontSize: 10,
-                fill: 0xffffff,
-                stroke: { color: 0x40564e, width: 3 },
-                fontWeight: "700",
-              }),
+        const wanted = new Set<string>();
+        for (const pl of current?.players ?? []) {
+          const item = current?.items.find((it) => it.id === pl.carrying);
+          if (!item) continue;
+          for (const order of current?.orders ?? []) if (!order.fulfilled && order.itemKind === item.kind) wanted.add(order.zone);
+        }
+        if (wanted.size > 0) {
+          const glow = 0.25 + 0.2 * Math.sin(time / 200);
+          lvl.map.forEach((row, y) => {
+            [...row].forEach((tile, x) => {
+              if (!tile || !wanted.has(tile)) return;
+              const p = cam.project(x, y);
+              ground.rect(p.x + 2, p.y + 2, T - 4, D - 4).fill({ color: 0xfff3b0, alpha: glow });
+              ground.rect(p.x + 2, p.y + 2, T - 4, D - 4).stroke({ color: 0xffffff, width: 2.5, alpha: 0.5 + glow });
             });
-            name.anchor.set(0.5, 1);
-            name.position.set(point.x, point.y - th * 1.7);
-            scene.addChild(name);
-          }
+          });
         }
+
+        type Actor = { y: number; draw: () => void };
+        const queue: Actor[] = [];
+
+        const zoneDone = new Map<string, boolean>();
+        for (const order of current?.orders ?? []) {
+          zoneDone.set(order.zone, (zoneDone.get(order.zone) ?? true) && order.fulfilled);
+        }
+        const seenZones = new Set<string>();
+        lvl.map.forEach((row, y) => {
+          [...row].forEach((tile, x) => {
+            if (tile === "X") {
+              queue.push({
+                y: y + 0.1,
+                draw: () => {
+                  const g = pooledGraphics(`flag-${x}-${y}`);
+                  const p = cam.project(x + 0.78, y + 0.35);
+                  const wave = Math.sin(time / 240) * T * 0.04;
+                  g.rect(p.x - 1.5, p.y - T * 0.95, 3, T * 0.95).fill({ color: 0x5b4632 });
+                  g.poly([p.x + 1.5, p.y - T * 0.95, p.x + T * 0.42, p.y - T * 0.83 + wave, p.x + 1.5, p.y - T * 0.7]).fill({ color: 0xe0583f });
+                  actors.addChild(g);
+                  const tag = label(`exit-${x}-${y}`, "EXIT", Math.max(10, T * 0.16), 0xffffff, 0x8a4a2a);
+                  const c = cam.project(x + 0.5, y + 0.95);
+                  tag.position.set(c.x, c.y);
+                  actors.addChild(tag);
+                },
+              });
+            }
+            if (!isZone(tile) || seenZones.has(tile)) return;
+            seenZones.add(tile);
+            queue.push({
+              y: y + 0.2,
+              draw: () => {
+                const p = cam.project(x + 0.5, y + 0.55);
+                const box = sprite(`postbox-${tile}`, tex.postbox);
+                box.height = T * 0.95;
+                box.width = box.height * (tex.postbox.width / tex.postbox.height);
+                box.position.set(p.x, p.y);
+                actors.addChild(box);
+                const done = zoneDone.get(tile) ?? false;
+                const name = lvl.recipients[tile] ?? tile.toUpperCase();
+                const tag = label(`zone-${tile}`, done ? `${name} ✓` : name, Math.max(11, T * 0.17), done ? 0xe9ffe8 : 0xffffff, done ? 0x2f6b45 : 0x5a4630);
+                tag.anchor.set(0, 0.5);
+                tag.position.set(p.x + box.width / 2 + 4, p.y - T * 0.5);
+                actors.addChild(tag);
+              },
+            });
+          });
+        });
+
+        for (const item of current?.items ?? []) {
+          if (item.state !== "ground") continue;
+          queue.push({
+            y: item.y + 0.5,
+            draw: () => {
+              const p = cam.project(item.x + 0.5, item.y + 0.62);
+              ground.ellipse(p.x, p.y, T * 0.32, D * 0.18).fill({ color: 0x000000, alpha: 0.18 });
+              if (item.kind === "lantern") {
+                const g = pooledGraphics(`lantern-${item.id}`);
+                drawLantern(g, p.x, p.y, T * 0.62, time);
+                actors.addChild(g);
+                return;
+              }
+              const t = item.kind === "crate" ? tex.crate : tex.plank;
+              const s = sprite(`item-${item.id}`, t);
+              s.width = T * (item.kind === "crate" ? 0.78 : 0.98);
+              s.height = s.width * (t.height / t.width);
+              s.position.set(p.x, p.y + D * 0.08);
+              actors.addChild(s);
+            },
+          });
+        }
+
+        const many = (current?.players.length ?? 0) > 1;
+        for (const player of current?.players ?? []) {
+          const target = { x: player.x / 1000, y: player.y / 1000 };
+          let s = smooth.get(player.id);
+          if (!s || Math.hypot(target.x - s.x, target.y - s.y) > 1.6) {
+            s = { x: target.x, y: target.y, flip: 1, lastMove: 0 };
+            smooth.set(player.id, s);
+          }
+          const nx = s.x + (target.x - s.x) * 0.45;
+          const ny = s.y + (target.y - s.y) * 0.45;
+          if (Math.abs(nx - s.x) > 0.002 || Math.abs(ny - s.y) > 0.002) s.lastMove = time;
+          if (nx - s.x < -0.002) s.flip = -1;
+          else if (nx - s.x > 0.002) s.flip = 1;
+          s.x = nx;
+          s.y = ny;
+          const pos = { x: s.x, y: s.y };
+          const flip = s.flip;
+          const moving = time - s.lastMove < 120;
+          queue.push({
+            y: pos.y,
+            draw: () => {
+              const p = cam.project(pos.x, pos.y);
+              const display = displays[player.id] ?? { name: "Courier", color: "red" };
+              const color = COLORS[display.color] ?? COLORS.red!;
+              if (player.state === "splash") {
+                const t = 1 - player.splashTicks / SPLASH_TICKS;
+                const g = pooledGraphics(`splash-${player.id}`);
+                for (let ring = 0; ring < 3; ring += 1) {
+                  const r = Math.max(0, t - ring * 0.15);
+                  g.ellipse(p.x, p.y, T * (0.15 + r * 0.6), D * (0.1 + r * 0.4)).stroke({ color: 0xffffff, width: 2.5, alpha: Math.max(0, 0.9 - r) });
+                }
+                for (let drop = 0; drop < 6; drop += 1) {
+                  const a = (drop / 6) * Math.PI * 2;
+                  const lift = Math.sin(Math.min(1, t * 2) * Math.PI) * T * 0.45;
+                  g.circle(p.x + Math.cos(a) * T * 0.3 * t, p.y - lift + Math.sin(a) * D * 0.15, 3).fill({ color: 0xe8fbf6, alpha: 1 - t });
+                }
+                actors.addChild(g);
+                const tag = label(`splash-tag-${player.id}`, "Splash!", Math.max(11, T * 0.18), 0xffffff, 0x2c6f7a);
+                tag.position.set(p.x, p.y - T * 0.6 - t * T * 0.3);
+                tag.alpha = 1 - t * 0.6;
+                actors.addChild(tag);
+                return;
+              }
+              ground.ellipse(p.x, p.y, T * 0.3, D * 0.2).fill({ color: 0x000000, alpha: 0.2 });
+              ground.ellipse(p.x, p.y, T * 0.34, D * 0.24).stroke({ color, width: 3, alpha: 0.95 });
+              const frame = moving && Math.floor(time / 130) % 2 === 1 ? tex.walk : tex.idle;
+              const body = sprite(`courier-${player.id}`, frame);
+              const bodyHeight = T * 1.18;
+              body.height = bodyHeight;
+              body.width = bodyHeight * (frame.width / frame.height) * flip;
+              const bob = moving ? Math.abs(Math.sin(time / 65)) * T * 0.05 : 0;
+              body.position.set(p.x, p.y - bob);
+              actors.addChild(body);
+
+              const carried = current?.items.find((it) => it.id === player.carrying);
+              const headY = p.y - bob - bodyHeight * 0.86;
+              if (carried?.kind === "lantern") {
+                const g = pooledGraphics(`carry-${player.id}`);
+                drawLantern(g, p.x, headY, T * 0.5, time);
+                actors.addChild(g);
+              } else if (carried) {
+                const t = carried.kind === "crate" ? tex.crate : tex.plank;
+                const c = sprite(`carry-${player.id}`, t);
+                c.width = T * (carried.kind === "crate" ? 0.66 : 0.9);
+                c.height = c.width * (t.height / t.width);
+                c.position.set(p.x, headY + T * 0.08);
+                actors.addChild(c);
+              }
+              if (many) {
+                const tag = label(`name-${player.id}`, display.name, Math.max(10, T * 0.14), 0xffffff, color);
+                if (tag.text !== display.name) tag.text = display.name;
+                tag.position.set(p.x, p.y - bodyHeight - (carried ? T * 0.55 : T * 0.08));
+                actors.addChild(tag);
+              }
+            },
+          });
+        }
+
+        queue.sort((a, b) => a.y - b.y);
+        for (const actor of queue) actor.draw();
+
         if (!rendered) {
           rendered = true;
           setRenderReady(true);
         }
       };
 
-      app.ticker.add((ticker) => drawScene(ticker.lastTime));
+      app.ticker.add(() => draw(performance.now()));
     }).catch(() => {
       destroy();
       if (!disposed) setRenderError(true);
@@ -279,7 +513,7 @@ export function GameCanvas({ level, world, players }: Props): JSX.Element {
   }, []);
 
   return (
-    <div ref={host} className="playfield-canvas" data-ready={renderReady} role="group" aria-label="Isometric town playfield">
+    <div ref={host} className="playfield-canvas" data-ready={renderReady} role="group" aria-label="Town playfield">
       {renderError && <div className="playfield-error" role="status">The playfield could not be rendered in this browser.</div>}
     </div>
   );

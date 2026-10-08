@@ -3,58 +3,73 @@ export interface Point2D {
   y: number;
 }
 
-export interface IsoCamera {
-  tileWidth: number;
-  tileHeight: number;
-  offsetX: number;
-  offsetY: number;
-  project: (x: number, y: number) => Point2D;
+/** Axis-aligned 3/4 diorama camera: world x → screen x, world y → screen y (squashed). */
+export interface DioramaCamera {
+  tile: number;
+  depth: number;
+  face: number;
+  project: (wx: number, wy: number) => Point2D;
 }
 
-export function createIsoCamera(
-  width: number,
-  height: number,
+const DEPTH_RATIO = 0.64;
+const FACE_RATIO = 0.42;
+
+export interface Bounds {
+  minX: number;
+  minY: number;
+  maxX: number;
+  maxY: number;
+}
+
+export function landBounds(map: readonly string[]): Bounds {
+  let minX = Infinity;
+  let minY = Infinity;
+  let maxX = -Infinity;
+  let maxY = -Infinity;
+  map.forEach((row, y) => {
+    [...row].forEach((tile, x) => {
+      if (tile === "~") return;
+      minX = Math.min(minX, x);
+      minY = Math.min(minY, y);
+      maxX = Math.max(maxX, x);
+      maxY = Math.max(maxY, y);
+    });
+  });
+  if (!Number.isFinite(minX)) return { minX: 0, minY: 0, maxX: (map[0]?.length ?? 1) - 1, maxY: map.length - 1 };
+  return { minX, minY, maxX, maxY };
+}
+
+export function createDioramaCamera(
+  map: readonly string[],
   viewWidth: number,
   viewHeight: number,
-): IsoCamera {
-  const margin = 96;
-  const scale = Math.max(0.45, Math.min(
-    (viewWidth - margin * 2) / (width + height) / 64,
-    (viewHeight - margin * 2) / (width + height) / 32,
-    1.35,
-  ));
-  const tileWidth = 64 * scale;
-  const tileHeight = 32 * scale;
-  const project = (x: number, y: number): Point2D => ({
-    x: (x - y) * tileWidth / 2,
-    y: (x + y) * tileHeight / 2,
-  });
-  const left = project(0, height);
-  const right = project(width, 0);
-  const top = project(0, 0);
-  const bottom = project(width, height);
-  const minX = Math.min(left.x, right.x);
-  const maxX = Math.max(left.x, right.x);
-  const minY = Math.min(top.y, right.y);
-  const maxY = Math.max(bottom.y, left.y);
-  const offsetX = viewWidth / 2 - (minX + maxX) / 2;
-  const offsetY = viewHeight / 2 - (minY + maxY) / 2;
-
+  insets = { top: 104, bottom: 72, side: 32 },
+): DioramaCamera {
+  const bounds = landBounds(map);
+  const cols = bounds.maxX - bounds.minX + 1 + 1.2;
+  const rows = bounds.maxY - bounds.minY + 1 + 1.2;
+  const availableW = Math.max(200, viewWidth - insets.side * 2);
+  const availableH = Math.max(160, viewHeight - insets.top - insets.bottom);
+  const tile = Math.max(24, Math.min(availableW / cols, availableH / (rows * DEPTH_RATIO + FACE_RATIO), 132));
+  const depth = tile * DEPTH_RATIO;
+  const face = tile * FACE_RATIO;
+  const centerX = (bounds.minX + bounds.maxX + 1) / 2;
+  const centerY = (bounds.minY + bounds.maxY + 1) / 2;
+  const screenCenterX = viewWidth / 2;
+  const screenCenterY = insets.top + availableH / 2 - face / 2;
   return {
-    tileWidth,
-    tileHeight,
-    offsetX,
-    offsetY,
-    project: (x, y) => {
-      const point = project(x, y);
-      return { x: point.x + offsetX, y: point.y + offsetY };
-    },
+    tile,
+    depth,
+    face,
+    project: (wx, wy) => ({
+      x: screenCenterX + (wx - centerX) * tile,
+      y: screenCenterY + (wy - centerY) * depth,
+    }),
   };
 }
 
+/** Screen-space stick/keys map directly onto world axes in the diorama view. */
 export function screenToWorld(screenX: number, screenY: number): Point2D {
-  const dx = screenX / 2 + screenY;
-  const dy = screenY - screenX / 2;
-  const magnitude = Math.max(Math.abs(dx), Math.abs(dy), 1);
-  return { x: Math.round(dx / magnitude * 100), y: Math.round(dy / magnitude * 100) };
+  const magnitude = Math.max(Math.abs(screenX), Math.abs(screenY), 1);
+  return { x: Math.round(screenX / magnitude * 100), y: Math.round(screenY / magnitude * 100) };
 }
