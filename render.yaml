@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: please-forward-the-town
+    runtime: node
+    plan: free
+    buildCommand: npm ci && npm run build
+    startCommand: node dist-server/src/server/main.js
+    healthCheckPath: /
+    envVars:
+      - key: PORT
+        value: 10000
+      - key: NODE_VERSION
+        value: 22
