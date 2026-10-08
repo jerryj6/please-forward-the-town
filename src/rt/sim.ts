@@ -181,15 +181,15 @@ export function planAction(world: World, player: Player): ActionPlan | null {
   const carried = player.carrying ? world.items.get(player.carrying) : undefined;
   if (player.carrying && !carried) return null;
 
-  if (carried?.kind === "plank") {
-    for (const target of candidates) {
-      if (!isSocket(world, target.x, target.y) || world.sockets.has(key(target.x, target.y))) continue;
-      return { verb: "deploy", x: target.x, y: target.y, itemId: carried.id };
-    }
-  }
-
   if (carried) {
     for (const target of candidates) {
+      if (
+        carried.kind === "plank" &&
+        isSocket(world, target.x, target.y) &&
+        !world.sockets.has(key(target.x, target.y))
+      ) {
+        return { verb: "deploy", x: target.x, y: target.y, itemId: carried.id };
+      }
       if (deliveryOrder(world, carried, target)) {
         return { verb: "deliver", x: target.x, y: target.y, itemId: carried.id };
       }

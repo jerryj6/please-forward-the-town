@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { LEVELS } from "../../src/rt/levels/index.js";
-import { addPlayer, createWorld, removePlayer, snapshot, step } from "../../src/rt/sim.js";
+import { addPlayer, createWorld, planAction, removePlayer, snapshot, step } from "../../src/rt/sim.js";
 import type { Input, LevelDefinition, World } from "../../src/rt/types.js";
 
 type Tile = [number, number];
@@ -157,6 +157,40 @@ const ADJACENT_DELIVERY_LEVEL: LevelDefinition = {
   recipients: { o: "Orchard" },
 };
 
+const CANDIDATE_DELIVERY_LEVEL: LevelDefinition = {
+  id: "candidate-delivery",
+  title: "Candidate delivery",
+  timeLimitSec: 30,
+  stars: { three: 20, two: 10 },
+  map: [
+    "~~~~~~~~",
+    "~......~",
+    "~.-....~",
+    "~..Sm..~",
+    "~..P...~",
+    "~~~~~~~~",
+  ],
+  orders: [{ itemKind: "plank", zone: "m", label: "Museum" }],
+  recipients: { m: "Museum" },
+};
+
+const CANDIDATE_DEPLOY_LEVEL: LevelDefinition = {
+  id: "candidate-deploy",
+  title: "Candidate deployment",
+  timeLimitSec: 30,
+  stars: { three: 20, two: 10 },
+  map: [
+    "~~~~~~~~",
+    "~......~",
+    "~.S-...~",
+    "~..m...~",
+    "~.P....~",
+    "~~~~~~~~",
+  ],
+  orders: [{ itemKind: "plank", zone: "m", label: "Museum" }],
+  recipients: { m: "Museum" },
+};
+
 const FLOOD_TEST_LEVEL: LevelDefinition = {
   id: "flood-test",
   title: "Flood test",
@@ -284,6 +318,38 @@ describe("real-time simulation", () => {
     expect(events.some((event) => event.type === "deliver" && event.itemId === lantern.id)).toBe(true);
     expect(lantern.state).toBe("delivered");
     expect(world.orders[0]!.fulfilled).toBe(true);
+  });
+
+  it("delivers at the facing Museum before deploying to a diagonal socket behind", () => {
+    const world = createWorld(CANDIDATE_DELIVERY_LEVEL, ["solo"]);
+    moveTo(world, "solo", 3, 4);
+    press(world, "solo");
+    const plank = [...world.items.values()].find((item) => item.kind === "plank")!;
+    moveTo(world, "solo", 3, 3);
+    step(world, new Map([["solo", input(100)]]));
+
+    expect(planAction(world, world.players.get("solo")!)).toEqual({
+      verb: "deliver",
+      x: 4,
+      y: 3,
+      itemId: plank.id,
+    });
+  });
+
+  it("deploys to the facing empty socket before delivering to a diagonal zone", () => {
+    const world = createWorld(CANDIDATE_DEPLOY_LEVEL, ["solo"]);
+    moveTo(world, "solo", 2, 4);
+    press(world, "solo");
+    const plank = [...world.items.values()].find((item) => item.kind === "plank")!;
+    moveTo(world, "solo", 2, 2);
+    step(world, new Map([["solo", input(100)]]));
+
+    expect(planAction(world, world.players.get("solo")!)).toEqual({
+      verb: "deploy",
+      x: 3,
+      y: 2,
+      itemId: plank.id,
+    });
   });
 
   it("delivers a plank from diagonally beside the Museum instead of dropping it", () => {
