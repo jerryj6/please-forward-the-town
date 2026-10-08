@@ -60,6 +60,9 @@ const LEVEL_COPY: Record<string, string> = {
   L4: "Take the low road before the tide takes it from you.",
   L5: "Two broad spans, one narrow crossing, and cargo that must go first.",
   L6: "The bridge gets you there. The ferry brings you home.",
+  L7: "A piano needs the bridge. Get it across before the plank leaves.",
+  L8: "Two ferries, two rhythms. Catch the right ride for each parcel.",
+  L9: "The water rises twice. Rescue the far islands before the routes close.",
 };
 
 function loadProgress(): Progress {

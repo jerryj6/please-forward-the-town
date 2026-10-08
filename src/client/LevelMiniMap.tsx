@@ -9,6 +9,7 @@ function tileColor(tile: string, x: number, y: number): string {
   if (tile === ",") return (x + y) % 2 === 0 ? "#e4cf98" : "#dcc58c";
   if (tile === ";") return (x + y) % 2 === 0 ? "#9d8e68" : "#8e805f";
   if (tile === "=") return "#b07642";
+  if (tile === "#") return "#53624f";
   if (tile === "X") return "#b98a58";
   if (tile >= "a" && tile <= "z") return "#e9d6a6";
   return (x + y) % 2 === 0 ? "#93c46f" : "#8aba67";

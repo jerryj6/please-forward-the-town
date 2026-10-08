@@ -18,6 +18,7 @@ export const TICKS_PER_SECOND = 20;
 export const TILE = 1000;
 export const PLAYER_SPEED = 200;
 const ACTION_REACH = 600;
+const CORNER_CORRECTION = 60;
 
 function key(x: number, y: number): string {
   return `${x},${y}`;
@@ -113,6 +114,35 @@ function isBodyWalkable(world: World, pos: Point, carryingPiano = false): boolea
     { x: pos.x - radius, y: pos.y + radius },
     { x: pos.x + radius, y: pos.y + radius },
   ].every((corner) => isPositionWalkable(world, corner, carryingPiano));
+}
+
+function moveAxisWithCornerCorrection(
+  world: World,
+  player: Player,
+  axis: "x" | "y",
+  delta: number,
+  carryingPiano: boolean,
+): void {
+  if (delta === 0) return;
+  const perpendicular = axis === "x" ? "y" : "x";
+  const target = { ...player.pos, [axis]: player.pos[axis] + delta };
+  if (isBodyWalkable(world, target, carryingPiano)) {
+    player.pos[axis] = target[axis];
+    return;
+  }
+  if (!isPositionWalkable(world, target, carryingPiano)) return;
+
+  const laneCenter = Math.floor(player.pos[perpendicular] / TILE) * TILE + TILE / 2;
+  const correction = Math.sign(laneCenter - player.pos[perpendicular]) *
+    Math.min(CORNER_CORRECTION, Math.abs(laneCenter - player.pos[perpendicular]));
+  if (correction === 0) return;
+
+  const corrected = { ...player.pos, [perpendicular]: player.pos[perpendicular] + correction };
+  if (!isBodyWalkable(world, corrected, carryingPiano)) return;
+  player.pos[perpendicular] = corrected[perpendicular];
+
+  const correctedTarget = { ...player.pos, [axis]: target[axis] };
+  if (isBodyWalkable(world, correctedTarget, carryingPiano)) player.pos[axis] = correctedTarget[axis];
 }
 
 function findItemAt(world: World, x: number, y: number, state: Item["state"]): Item | undefined {
@@ -521,10 +551,8 @@ export function step(world: World, inputs: Map<string, Input>): SimEvent[] {
       const speed = piano ? Math.trunc(PLAYER_SPEED * (teamLift ? 0.85 : 0.5)) : PLAYER_SPEED;
       const moveX = Math.trunc((dx * speed) / length);
       const moveY = Math.trunc((dy * speed) / length);
-      const nextX = player.pos.x + moveX;
-      if (isBodyWalkable(world, { x: nextX, y: player.pos.y }, piano)) player.pos.x = nextX;
-      const nextY = player.pos.y + moveY;
-      if (isBodyWalkable(world, { x: player.pos.x, y: nextY }, piano)) player.pos.y = nextY;
+      moveAxisWithCornerCorrection(world, player, "x", moveX, piano);
+      moveAxisWithCornerCorrection(world, player, "y", moveY, piano);
     }
     if (input.action) doAction(world, player, events);
   }

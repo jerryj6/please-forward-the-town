@@ -31,17 +31,19 @@ function moveTo(world: World, playerId: string, targetX: number, targetY: number
   const targetWorldY = targetY * 1000 + 500;
   let budget = 5000;
   while (
-    (player.pos.x !== targetWorldX || player.pos.y !== targetWorldY) &&
+    (Math.abs(player.pos.x - targetWorldX) > 100 || Math.abs(player.pos.y - targetWorldY) > 100) &&
     budget > 0 &&
     world.phase === "playing"
   ) {
-    const dx = player.pos.x === targetWorldX ? 0 : Math.sign(targetWorldX - player.pos.x) * 100;
-    const dy = dx === 0 && player.pos.y !== targetWorldY
+    const dx = Math.abs(player.pos.x - targetWorldX) <= 100 ? 0 : Math.sign(targetWorldX - player.pos.x) * 100;
+    const dy = dx === 0 && Math.abs(player.pos.y - targetWorldY) > 100
       ? Math.sign(targetWorldY - player.pos.y) * 100
       : 0;
     const before = { ...player.pos };
     step(world, new Map([[playerId, input(dx, dy)]]));
-    if (player.pos.x === before.x && player.pos.y === before.y && world.phase === "playing") {
+    if (player.pos.x === before.x && player.pos.y === before.y &&
+      (Math.abs(player.pos.x - targetWorldX) > 100 || Math.abs(player.pos.y - targetWorldY) > 100) &&
+      world.phase === "playing") {
       throw new Error(`Could not walk ${playerId} to ${targetX},${targetY}`);
     }
     budget -= 1;
@@ -60,7 +62,8 @@ function moveTogether(world: World, targets: Map<string, Tile>): void {
   while (
     [...targets].some(([id, [x, y]]) => {
       const player = world.players.get(id)!;
-      return player.pos.x !== x * 1000 + 500 || player.pos.y !== y * 1000 + 500;
+      return Math.abs(player.pos.x - (x * 1000 + 500)) > 100 ||
+        Math.abs(player.pos.y - (y * 1000 + 500)) > 100;
     }) &&
     budget > 0 &&
     world.phase === "playing"
@@ -72,16 +75,20 @@ function moveTogether(world: World, targets: Map<string, Tile>): void {
       before.set(id, [player.pos.x, player.pos.y]);
       const targetX = x * 1000 + 500;
       const targetY = y * 1000 + 500;
-      const dx = player.pos.x === targetX ? 0 : Math.sign(targetX - player.pos.x) * 100;
-      const dy = dx === 0 && player.pos.y !== targetY ? Math.sign(targetY - player.pos.y) * 100 : 0;
+      const dx = Math.abs(player.pos.x - targetX) <= 100 ? 0 : Math.sign(targetX - player.pos.x) * 100;
+      const dy = dx === 0 && Math.abs(player.pos.y - targetY) > 100
+        ? Math.sign(targetY - player.pos.y) * 100
+        : 0;
       inputs.set(id, input(dx, dy));
     }
     step(world, inputs);
     for (const [id, [x, y]] of targets) {
       const player = world.players.get(id)!;
       const old = before.get(id)!;
+      const targetX = x * 1000 + 500;
+      const targetY = y * 1000 + 500;
       if (player.pos.x === old[0] && player.pos.y === old[1] &&
-        (player.pos.x !== x * 1000 + 500 || player.pos.y !== y * 1000 + 500) &&
+        (Math.abs(player.pos.x - targetX) > 100 || Math.abs(player.pos.y - targetY) > 100) &&
         world.phase === "playing") {
         throw new Error(`Could not walk ${id} to ${x},${y}`);
       }
@@ -89,6 +96,42 @@ function moveTogether(world: World, targets: Map<string, Tile>): void {
     budget -= 1;
   }
   if (budget === 0 && world.phase === "playing") throw new Error("Could not walk couriers to their waypoints");
+}
+
+function moveRoutesTogether(world: World, routes: Map<string, Tile[]>): void {
+  const cursors = new Map([...routes.keys()].map((playerId) => [playerId, 0]));
+  let budget = 5000;
+  while ([...routes].some(([playerId, waypoints]) => cursors.get(playerId)! < waypoints.length) &&
+    budget > 0 && world.phase === "playing") {
+    const inputs = new Map<string, Input>();
+    for (const [playerId, waypoints] of routes) {
+      const player = world.players.get(playerId)!;
+      let cursor = cursors.get(playerId)!;
+      while (cursor < waypoints.length) {
+        const [x, y] = waypoints[cursor]!;
+        const targetX = x * 1000 + 500;
+        const targetY = y * 1000 + 500;
+        if (Math.abs(player.pos.x - targetX) > 100 || Math.abs(player.pos.y - targetY) > 100) break;
+        cursor += 1;
+      }
+      cursors.set(playerId, cursor);
+      if (cursor >= waypoints.length) {
+        inputs.set(playerId, input());
+        continue;
+      }
+      const [x, y] = waypoints[cursor]!;
+      const targetX = x * 1000 + 500;
+      const targetY = y * 1000 + 500;
+      const dx = Math.abs(player.pos.x - targetX) <= 100 ? 0 : Math.sign(targetX - player.pos.x) * 100;
+      const dy = dx === 0 && Math.abs(player.pos.y - targetY) > 100
+        ? Math.sign(targetY - player.pos.y) * 100
+        : 0;
+      inputs.set(playerId, input(dx, dy));
+    }
+    step(world, inputs);
+    budget -= 1;
+  }
+  if (budget === 0 || world.phase !== "playing") throw new Error("Concurrent waypoint routes did not finish");
 }
 
 function pressTogether(world: World, ...playerIds: string[]): void {
@@ -330,13 +373,13 @@ function rideFerryAcross(world: World, playerId: string, from: "west" | "east"):
   const endDock = from === "west" ? 12 : 5;
   moveTo(world, playerId, startDock, 4);
   let budget = 5000;
-  while ((ferry.x !== startX || ferry.y !== 4500 || ferry.dwellTicks === 0) && budget > 0 && world.phase === "playing") {
+  while ((ferry.x !== startX || ferry.y !== 4500 || ferry.dwellTicks < 8) && budget > 0 && world.phase === "playing") {
     step(world, new Map());
     budget -= 1;
   }
   if (budget === 0 || world.phase !== "playing") throw new Error("Ferry did not reach its dock");
   moveTo(world, playerId, Math.floor(startX / 1000), 4);
-  while ((ferry.x !== endX || ferry.y !== 4500 || ferry.dwellTicks === 0) && budget > 0 && world.phase === "playing") {
+  while ((ferry.x !== endX || ferry.y !== 4500 || ferry.dwellTicks < 8) && budget > 0 && world.phase === "playing") {
     step(world, new Map());
     budget -= 1;
   }
@@ -354,18 +397,152 @@ function rideFerryTogether(world: World, playerIds: [string, string], from: "wes
   const dockX = startDock;
   moveTogether(world, new Map(playerIds.map((id) => [id, [dockX, 4]])));
   let budget = 5000;
-  while ((ferry.x !== startX || ferry.y !== 4500 || ferry.dwellTicks === 0) && budget > 0 && world.phase === "playing") {
+  while ((ferry.x !== startX || ferry.y !== 4500 || ferry.dwellTicks < 8) && budget > 0 && world.phase === "playing") {
     step(world, new Map());
     budget -= 1;
   }
   if (budget === 0 || world.phase !== "playing") throw new Error("Ferry did not reach its dock");
   moveTogether(world, new Map(playerIds.map((id) => [id, [ferryTile, 4]])));
-  while ((ferry.x !== endX || ferry.y !== 4500 || ferry.dwellTicks === 0) && budget > 0 && world.phase === "playing") {
+  while ((ferry.x !== endX || ferry.y !== 4500 || ferry.dwellTicks < 8) && budget > 0 && world.phase === "playing") {
     step(world, new Map());
     budget -= 1;
   }
   if (budget === 0 || world.phase !== "playing") throw new Error("Ferry did not reach the opposite dock");
   moveTogether(world, new Map(playerIds.map((id) => [id, [endDock, 4]])));
+}
+
+function rideNamedFerry(
+  world: World,
+  playerId: string,
+  ferryId: string,
+  from: "center" | "east",
+): void {
+  const definition = world.level.ferries?.find((candidate) => candidate.id === ferryId);
+  const ferry = world.ferries.find((candidate) => candidate.id === ferryId);
+  if (!definition || !ferry) throw new Error(`Missing ferry ${ferryId}`);
+  const start = definition.path[from === "center" ? 0 : definition.path.length - 1]!;
+  const end = definition.path[from === "center" ? definition.path.length - 1 : 0]!;
+  const startX = start.x * 1000 + 500;
+  const startY = start.y * 1000 + 500;
+  const endX = end.x * 1000 + 500;
+  const endY = end.y * 1000 + 500;
+  const startShoreX = start.x + (from === "center" ? -1 : 1);
+  const endShoreX = end.x + (from === "center" ? 1 : -1);
+  let budget = 5000;
+
+  moveTo(world, playerId, startShoreX, start.y);
+  while ((ferry.x !== startX || ferry.y !== startY || ferry.dwellTicks < 8) && budget > 0 && world.phase === "playing") {
+    step(world, new Map());
+    budget -= 1;
+  }
+  if (budget === 0 || world.phase !== "playing") throw new Error(`Ferry ${ferryId} did not reach its boarding dock`);
+  moveTo(world, playerId, start.x, start.y);
+  while ((ferry.x !== endX || ferry.y !== endY || ferry.dwellTicks < 8) && budget > 0 && world.phase === "playing") {
+    step(world, new Map());
+    budget -= 1;
+  }
+  if (budget === 0 || world.phase !== "playing") throw new Error(`Ferry ${ferryId} did not reach its destination dock`);
+  moveTo(world, playerId, endShoreX, end.y);
+}
+
+function rideNamedFerriesTogether(
+  world: World,
+  riders: Array<{ playerId: string; ferryId: string; from: "center" | "east" }>,
+): void {
+  const rides = riders.map(({ playerId, ferryId, from }) => {
+    const definition = world.level.ferries?.find((candidate) => candidate.id === ferryId);
+    if (!definition) throw new Error(`Missing ferry ${ferryId}`);
+    const start = definition.path[from === "center" ? 0 : definition.path.length - 1]!;
+    const end = definition.path[from === "center" ? definition.path.length - 1 : 0]!;
+    const startShoreX = start.x + (from === "center" ? -1 : 1);
+    const endShoreX = end.x + (from === "center" ? 1 : -1);
+    return {
+      playerId,
+      ferryId,
+      startX: start.x * 1000 + 500,
+      startY: start.y * 1000 + 500,
+      endX: end.x * 1000 + 500,
+      endY: end.y * 1000 + 500,
+      startShoreX,
+      endShoreX,
+      y: start.y,
+      boarded: false,
+      done: false,
+    };
+  });
+  for (const ride of rides) moveTo(world, ride.playerId, ride.startShoreX, ride.y);
+
+  let budget = 5000;
+  while (rides.some((ride) => !ride.done) && budget > 0 && world.phase === "playing") {
+    const inputs = new Map<string, Input>();
+    for (const ride of rides) {
+      const ferry = world.ferries.find((candidate) => candidate.id === ride.ferryId)!;
+      const player = world.players.get(ride.playerId)!;
+      if (!ride.boarded) {
+        if (ferry.x === ride.startX && ferry.y === ride.startY && ferry.dwellTicks >= 8) {
+          inputs.set(ride.playerId, input(Math.sign(ride.startX - player.pos.x) * 100));
+        }
+      } else if (ferry.x === ride.endX && ferry.y === ride.endY && ferry.dwellTicks >= 8) {
+        inputs.set(ride.playerId, input(Math.sign(ride.endShoreX * 1000 + 500 - player.pos.x) * 100));
+      }
+    }
+    step(world, inputs);
+    for (const ride of rides) {
+      const ferry = world.ferries.find((candidate) => candidate.id === ride.ferryId)!;
+      const player = world.players.get(ride.playerId)!;
+      if (
+        !ride.boarded &&
+        Math.abs(player.pos.x - ferry.x) <= 500 &&
+        Math.abs(player.pos.y - ferry.y) <= 500
+      ) {
+        ride.boarded = true;
+      }
+      if (
+        ride.boarded &&
+        Math.floor(player.pos.x / 1000) === ride.endShoreX &&
+        Math.floor(player.pos.y / 1000) === ride.y
+      ) {
+        ride.done = true;
+      }
+    }
+    budget -= 1;
+  }
+  if (budget === 0 || world.phase !== "playing") throw new Error("Named ferries did not carry both couriers");
+}
+
+function movePianoWithHelper(
+  world: World,
+  carrierId: string,
+  helperId: string,
+  ...waypoints: Tile[]
+): void {
+  let budget = 5000;
+  for (const [targetX, targetY] of waypoints) {
+    const targetWorldX = targetX * 1000 + 500;
+    const targetWorldY = targetY * 1000 + 500;
+    while (
+      (Math.abs(world.players.get(carrierId)!.pos.x - targetWorldX) > 100 ||
+        Math.abs(world.players.get(carrierId)!.pos.y - targetWorldY) > 100) &&
+      budget > 0 &&
+      world.phase === "playing"
+    ) {
+      const carrier = world.players.get(carrierId)!;
+      const helper = world.players.get(helperId)!;
+      const dx = Math.abs(carrier.pos.x - targetWorldX) <= 100
+        ? 0
+        : Math.sign(targetWorldX - carrier.pos.x) * 100;
+      const dy = dx === 0 && Math.abs(carrier.pos.y - targetWorldY) > 100
+        ? Math.sign(targetWorldY - carrier.pos.y) * 100
+        : 0;
+      const travelDirection = dx !== 0 ? Math.sign(dx) : Math.sign(dy);
+      const lead = (helper.pos.x - carrier.pos.x) * (dx !== 0 ? travelDirection : 0) +
+        (helper.pos.y - carrier.pos.y) * (dy !== 0 ? travelDirection : 0);
+      const helperInput = lead > 750 ? input() : input(dx, dy);
+      step(world, new Map([[carrierId, input(dx, dy)], [helperId, helperInput]]));
+      budget -= 1;
+    }
+    if (budget === 0 && world.phase === "playing") throw new Error("Piano team lift did not reach its waypoint");
+  }
 }
 
 function completeL6(): World {
@@ -399,12 +576,12 @@ function completeL6Coop(): World {
   moveTogether(world, new Map([["a", [16, 3]], ["b", [16, 3]]]));
   pressTogether(world, "a", "b");
 
-  moveThrough(world, "a", [13, 2], [7, 2], [4, 2]);
+  moveTogether(world, new Map([["a", [13, 2]], ["b", [13, 2]]]));
+  moveTogether(world, new Map([["a", [4, 2]], ["b", [7, 2]]]));
   press(world, "a");
-  moveThrough(world, "a", [4, 2], [7, 2], [13, 2], [13, 3], [16, 3]);
+  moveThrough(world, "a", [7, 2], [13, 2], [13, 3], [16, 3]);
   press(world, "a");
 
-  moveThrough(world, "b", [13, 2], [7, 2]);
   press(world, "b", -100);
   moveThrough(world, "b", [13, 2], [12, 4]);
   press(world, "b");
@@ -435,6 +612,153 @@ function completeL6PlankFirst(): World {
   return world;
 }
 
+function completeL7(crossings?: FloodCrossings): World {
+  const world = createWorld(withSoloTimeBonus(LEVELS[6]!), ["solo"]);
+  moveTo(world, "solo", 2, 4);
+  press(world, "solo");
+  moveTo(world, "solo", 12, 4);
+  recordFloodCrossing(world, crossings, "sandbar");
+  press(world, "solo");
+  moveTo(world, "solo", 4, 4);
+  recordFloodCrossing(world, crossings, "sandbar");
+  moveThrough(world, "solo", [4, 5], [4, 6], [1, 6]);
+  press(world, "solo");
+  moveThrough(world, "solo", [4, 6], [4, 2], [7, 2], [14, 2], [14, 6], [16, 6], [16, 5], [18, 5], [18, 4], [18, 2], [20, 5], [20, 6]);
+  press(world, "solo");
+  moveThrough(world, "solo", [14, 6], [14, 2], [7, 2]);
+  press(world, "solo", -100);
+  moveThrough(world, "solo", [14, 2], [14, 6], [16, 6], [16, 5], [18, 5], [18, 4], [18, 2]);
+  press(world, "solo");
+  moveTo(world, "solo", 20, 5);
+  return world;
+}
+
+function completeL7Coop(): World {
+  const world = createWorld(LEVELS[6]!, ["a", "b"]);
+  moveTogether(world, new Map([["a", [2, 4]], ["b", [1, 6]]]));
+  pressTogether(world, "a", "b");
+  moveRoutesTogether(world, new Map([
+    ["a", [[12, 4]]],
+    ["b", [[4, 6], [4, 2], [7, 2], [14, 2]]],
+  ]));
+  press(world, "a");
+  moveTo(world, "a", 14, 2);
+  movePianoWithHelper(world, "b", "a", [14, 6], [16, 6], [16, 5], [18, 5], [18, 4], [18, 2], [20, 5], [20, 6]);
+  press(world, "b");
+  moveThrough(world, "b", [14, 6], [14, 2], [7, 2]);
+  press(world, "b", -100);
+  moveThrough(world, "b", [14, 2], [14, 6], [16, 6], [16, 5], [18, 5], [18, 4], [18, 2]);
+  press(world, "b");
+  moveTogether(world, new Map([["a", [20, 5]], ["b", [20, 5]]]));
+  return world;
+}
+
+function completeL8(): World {
+  const world = createWorld(withSoloTimeBonus(LEVELS[7]!), ["solo"]);
+  moveTo(world, "solo", 17, 3);
+  press(world, "solo");
+  rideNamedFerry(world, "solo", "slow-ferry", "east");
+  moveThrough(world, "solo", [7, 3], [5, 3], [2, 3]);
+  press(world, "solo");
+  moveTo(world, "solo", 3, 3);
+  press(world, "solo");
+  moveTo(world, "solo", 9, 4);
+  rideNamedFerry(world, "solo", "fast-ferry", "center");
+  moveThrough(world, "solo", [17, 4], [17, 2], [19, 2], [19, 3]);
+  press(world, "solo");
+  moveThrough(world, "solo", [19, 2], [17, 2], [17, 4], [14, 4]);
+  rideNamedFerry(world, "solo", "fast-ferry", "east");
+  moveThrough(world, "solo", [7, 3]);
+  press(world, "solo", -100);
+  moveTo(world, "solo", 9, 4);
+  rideNamedFerry(world, "solo", "fast-ferry", "center");
+  moveTo(world, "solo", 16, 3);
+  press(world, "solo");
+  moveThrough(world, "solo", [17, 3], [17, 2], [20, 2], [20, 1]);
+  return world;
+}
+
+function completeL8Coop(): World {
+  const world = createWorld(LEVELS[7]!, ["a", "b"]);
+  moveTo(world, "a", 17, 3);
+  press(world, "a");
+  moveTo(world, "b", 3, 3);
+  press(world, "b");
+  moveTogether(world, new Map([["b", [9, 4]], ["a", [14, 2]]]));
+  rideNamedFerriesTogether(world, [
+    { playerId: "b", ferryId: "fast-ferry", from: "center" },
+    { playerId: "a", ferryId: "slow-ferry", from: "east" },
+  ]);
+
+  moveTogether(world, new Map([["b", [17, 4]], ["a", [7, 3]]]));
+  moveTogether(world, new Map([["b", [17, 2]], ["a", [4, 3]]]));
+  moveTogether(world, new Map([["b", [19, 2]], ["a", [2, 3]]]));
+  moveTogether(world, new Map([["b", [19, 3]], ["a", [2, 3]]]));
+  pressTogether(world, "a", "b");
+
+  moveTogether(world, new Map([["b", [20, 1]], ["a", [7, 3]]]));
+  press(world, "a", -100);
+  moveTo(world, "a", 9, 4);
+  rideNamedFerry(world, "a", "fast-ferry", "center");
+  moveTo(world, "a", 16, 3);
+  press(world, "a");
+  moveThrough(world, "a", [17, 3], [17, 2], [20, 2], [20, 1]);
+  return world;
+}
+
+function completeL9(crossings?: FloodCrossings): World {
+  const world = createWorld(withSoloTimeBonus(LEVELS[8]!), ["solo"]);
+  moveTo(world, "solo", 3, 2);
+  press(world, "solo");
+  moveThrough(world, "solo", [3, 3], [5, 3]);
+  recordFloodCrossing(world, crossings, "sandbar");
+  moveThrough(world, "solo", [5, 2], [8, 2], [8, 3], [10, 3]);
+  recordFloodCrossing(world, crossings, "shoal");
+  moveThrough(world, "solo", [13, 3], [15, 3]);
+  recordFloodCrossing(world, crossings, "sandbar");
+  moveTo(world, "solo", 18, 2);
+  press(world, "solo");
+
+  moveTo(world, "solo", 12, 2);
+  press(world, "solo");
+  moveTo(world, "solo", 2, 2);
+  press(world, "solo");
+
+  moveTo(world, "solo", 7, 2);
+  press(world, "solo");
+  moveTo(world, "solo", 11, 2);
+  press(world, "solo");
+  moveTo(world, "solo", 17, 2);
+  press(world, "solo");
+  moveTo(world, "solo", 6, 2);
+  press(world, "solo");
+  moveTo(world, "solo", 19, 2);
+  return world;
+}
+
+function completeL9Coop(): World {
+  const world = createWorld(LEVELS[8]!, ["a", "b"]);
+  moveTo(world, "a", 3, 2);
+  press(world, "a");
+  moveThrough(world, "a", [3, 3], [5, 3], [5, 2], [8, 2], [8, 3], [10, 3], [15, 3]);
+  moveTo(world, "a", 18, 2);
+  press(world, "a");
+
+  moveTo(world, "b", 7, 2);
+  press(world, "b");
+  moveTo(world, "b", 11, 2);
+  press(world, "b");
+
+  moveTogether(world, new Map([["a", [12, 2]], ["b", [17, 2]]]));
+  press(world, "a");
+  press(world, "b");
+  moveTogether(world, new Map([["a", [2, 2]], ["b", [6, 2]]]));
+  press(world, "a");
+  press(world, "b");
+  moveTogether(world, new Map([["a", [19, 2]], ["b", [19, 2]]]));
+  return world;
+}
+
 const BOTS: Bot[] = [
   ["L1", completeL1],
   ["L2 sandbar", completeL2Sandbar],
@@ -443,6 +767,9 @@ const BOTS: Bot[] = [
   ["L4 far first", completeL4],
   ["L5 intended order", completeL5],
   ["L6 crates before plank", completeL6],
+  ["L7 Piano Day", completeL7],
+  ["L8 Crosscurrent", completeL8],
+  ["L9 Spring Tide", completeL9],
 ];
 
 const FLOOD_BOTS: Array<[string, (crossings: FloodCrossings) => World, FloodTier[]]> = [
@@ -450,12 +777,17 @@ const FLOOD_BOTS: Array<[string, (crossings: FloodCrossings) => World, FloodTier
   ["L2 leapfrog", completeL2Leapfrog, ["sandbar"]],
   ["L3", completeL3, ["sandbar"]],
   ["L4 far first", completeL4, ["sandbar", "shoal"]],
+  ["L7 Piano Day", completeL7, ["sandbar"]],
+  ["L9 Spring Tide", completeL9, ["sandbar", "shoal"]],
 ];
 
 const COOP_BOTS: Bot[] = [
   ["L4", completeL4Coop],
   ["L5", completeL5Coop],
   ["L6", completeL6Coop],
+  ["L7", completeL7Coop],
+  ["L8", completeL8Coop],
+  ["L9", completeL9Coop],
 ];
 
 const ADJACENT_DELIVERY_LEVEL: LevelDefinition = {
@@ -621,21 +953,40 @@ describe("real-time simulation", () => {
     for (const tier of tiers) expectFloodMargin(world, crossings, tier);
   });
 
-  it.each(COOP_BOTS.filter(([levelId]) => levelId !== "L4"))("%s two-player bot is at least 20% faster", (levelId, runBot) => {
-    const index = Number(levelId.slice(1)) - 1;
-    const solo = BOTS.find(([route]) => route.startsWith(levelId))![1]();
+  it.each(COOP_BOTS.filter(([levelId]) => levelId !== "L4"))("%s two-player bot completes all orders", (levelId, runBot) => {
     const coop = runBot();
+    console.info(`${levelId} co-op: ${(coop.tick / 20).toFixed(2)} s`);
     if (coop.phase !== "completed") {
       console.info(`${levelId} unfinished co-op: ${JSON.stringify({
         orders: coop.orders.filter((order) => !order.fulfilled),
         players: [...coop.players.values()].map(({ id, pos, state, carrying }) => ({ id, pos, state, carrying })),
       })}`);
     }
-    expect(solo.phase).toBe("completed");
     expect(coop.phase).toBe("completed");
+  });
+
+  it.each(COOP_BOTS.filter(([levelId]) => !["L4", "L7"].includes(levelId)))(
+    "%s two-player bot is at least 20% faster",
+    (levelId, runBot) => {
+      const solo = BOTS.find(([route]) => route.startsWith(levelId))![1]();
+      const coop = runBot();
+      console.info(`${levelId} solo/co-op: ${(solo.tick / 20).toFixed(2)} s / ${(coop.tick / 20).toFixed(2)} s`);
+      expect(solo.phase).toBe("completed");
+      expect(coop.phase).toBe("completed");
+      expect(coop.tick).toBeLessThanOrEqual(solo.tick * 0.8);
+    },
+  );
+
+  it("L7 two-player bot is at least 20% faster", () => {
+    const solo = BOTS.find(([route]) => route.startsWith("L7"))![1]();
+    const coop = completeL7Coop();
     expect(coop.tick).toBeLessThanOrEqual(solo.tick * 0.8);
-    console.info(`${levelId} solo/co-op: ${(solo.tick / 20).toFixed(2)} s / ${(coop.tick / 20).toFixed(2)} s`);
-    expect(index).toBeGreaterThanOrEqual(3);
+  });
+
+  it("L8 two-player bot is at least 20% faster", () => {
+    const solo = BOTS.find(([route]) => route.startsWith("L8"))![1]();
+    const coop = completeL8Coop();
+    expect(coop.tick).toBeLessThanOrEqual(solo.tick * 0.8);
   });
 
   it("L4 co-op bot completes all orders and extracts both couriers", () => {
@@ -713,6 +1064,134 @@ describe("real-time simulation", () => {
     console.info(`L6 crates first/plank first: ${(correct.tick / 20).toFixed(2)} s / ${(plankFirst.tick / 20).toFixed(2)} s`);
   });
 
+  it("keeps the L7 piano route available until the piano reaches Music Hall", () => {
+    const world = createWorld(withSoloTimeBonus(LEVELS[6]!), ["solo"]);
+    moveTo(world, "solo", 5, 2);
+    const events = press(world, "solo", 100);
+    expect(events.some((event) => event.type === "pickup" && event.itemKind === "plank")).toBe(true);
+    for (let tick = 0; tick < 20; tick += 1) step(world, new Map([["solo", input(100)]]));
+    expect(Math.floor(world.players.get("solo")!.pos.x / 1000)).toBe(5);
+    expect(world.orders.find((order) => order.itemKind === "piano")?.fulfilled).toBe(false);
+    expect(world.orders.find((order) => order.itemKind === "plank")?.fulfilled).toBe(false);
+  });
+
+  it("soft-locks the L7 piano route when the bridge plank is delivered first", () => {
+    const world = createWorld(withSoloTimeBonus(LEVELS[6]!), ["solo"]);
+    moveTo(world, "solo", 7, 2);
+    const pickup = press(world, "solo", -100);
+    expect(pickup.some((event) => event.type === "pickup" && event.itemKind === "plank")).toBe(true);
+    moveThrough(world, "solo", [14, 2], [14, 1], [16, 1], [16, 2], [18, 2]);
+    press(world, "solo");
+    expect(world.orders.find((order) => order.itemKind === "plank")?.fulfilled).toBe(true);
+
+    moveThrough(world, "solo", [16, 2], [16, 1], [14, 1], [14, 2], [14, 4], [10, 4], [4, 4], [4, 6], [1, 6]);
+    const pianoPickup = press(world, "solo");
+    const player = world.players.get("solo")!;
+    expect(pianoPickup.some((event) => event.type === "pickup" && event.itemKind === "piano")).toBe(true);
+    moveThrough(world, "solo", [4, 6], [4, 2], [5, 2]);
+    for (let tick = 0; tick < 20; tick += 1) step(world, new Map([["solo", input(100)]]));
+    expect(Math.floor(player.pos.x / 1000)).toBe(5);
+    for (let tick = 0; tick < 20; tick += 1) step(world, new Map([["solo", input(0, 100)]]));
+    expect(Math.floor(player.pos.y / 1000)).toBe(3);
+    expect(world.orders.find((order) => order.itemKind === "piano")?.fulfilled).toBe(false);
+  });
+
+  it("replays the reported L7 bridge-plank input sequence at 20 tps", () => {
+    const world = createWorld(LEVELS[6]!, ["solo"]);
+    const player = world.players.get("solo")!;
+    const plank = [...world.items.values()].find((item) => item.kind === "plank")!;
+    player.pos = { x: 7300, y: 2500 };
+    player.facing = "w";
+    const liftEvents = step(world, new Map([["solo", input(0, 0, true)]]));
+    expect(liftEvents.some((event) => event.type === "pickup" && event.itemKind === "plank")).toBe(true);
+    console.info(`L7 repro lift: (${(player.pos.x / 1000).toFixed(2)}, ${(player.pos.y / 1000).toFixed(2)}) carrying=${player.carrying}`);
+
+    const allEventTypes: string[] = [];
+    const trace = (label: string, ticks: number, dx: number, dy: number, action = false) => {
+      const events = [];
+      for (let tick = 0; tick < ticks; tick += 1) {
+        events.push(...step(world, new Map([["solo", input(dx, dy, action && tick === 0)]])));
+      }
+      allEventTypes.push(...events.map((event) => event.type));
+      console.info(
+        `L7 repro ${label}: (${(player.pos.x / 1000).toFixed(2)}, ${(player.pos.y / 1000).toFixed(2)}) ` +
+        `state=${player.state} carrying=${player.carrying ?? "none"} ` +
+        `plank=${plank.state}@(${plank.pos.x},${plank.pos.y}) socket=${world.sockets.has("6,2")} ` +
+        `events=${events.map((event) => event.type).join(",") || "none"}`,
+      );
+      return events;
+    };
+
+    trace("D 1.0s", 20, 100, 0);
+    trace("S 0.3s", 6, 0, 100);
+    trace("D 1.75s", 35, 100, 0);
+    trace("W 0.25s", 5, 0, -100);
+    const actionEvents = trace("Space", 1, 0, 0, true);
+    trace("D 0.7s", 14, 100, 0);
+
+    expect(actionEvents.some((event) => event.type === "deliver" && event.label === "Carpenter")).toBe(true);
+    expect(allEventTypes).not.toContain("splash");
+    expect(allEventTypes).not.toContain("respawn");
+    expect(player.state).toBe("normal");
+    expect(player.carrying).toBeNull();
+    expect(plank.state).toBe("delivered");
+    expect(world.sockets.has("6,2")).toBe(false);
+  });
+
+  it("makes team lift materially faster on the L7 piano route", () => {
+    const soloWorld = createWorld(LEVELS[6]!, ["solo"]);
+    moveTo(soloWorld, "solo", 1, 6);
+    press(soloWorld, "solo");
+    const solo = soloWorld.players.get("solo")!;
+    const soloStart = solo.pos.x;
+    for (let tick = 0; tick < 20; tick += 1) step(soloWorld, new Map([["solo", input(100)]]));
+
+    const teamWorld = createWorld(LEVELS[6]!, ["carrier", "helper"]);
+    moveTo(teamWorld, "carrier", 1, 6);
+    press(teamWorld, "carrier");
+    moveTo(teamWorld, "helper", 1, 6);
+    const carrier = teamWorld.players.get("carrier")!;
+    const teamStart = carrier.pos.x;
+    for (let tick = 0; tick < 20; tick += 1) {
+      step(teamWorld, new Map([["carrier", input(100)], ["helper", input(100)]]));
+    }
+
+    expect(carrier.pos.x - teamStart).toBeGreaterThanOrEqual(Math.ceil((solo.pos.x - soloStart) * 1.4));
+  });
+
+  it("soft-locks L8's west cargo if its only bridge is lifted early", () => {
+    const world = createWorld(withSoloTimeBonus(LEVELS[7]!), ["solo"]);
+    const player = world.players.get("solo")!;
+    player.pos = { x: 7_500, y: 3_500 };
+    moveTo(world, "solo", 7, 3);
+    const events = press(world, "solo", -100);
+    const crate = [...world.items.values()].find((item) => item.kind === "crate")!;
+    expect(events.some((event) => event.type === "pickup" && event.itemKind === "plank")).toBe(true);
+    expect(world.sockets.has("6,3")).toBe(false);
+    for (let tick = 0; tick < 20; tick += 1) step(world, new Map([["solo", input(-100)]]));
+    expect(Math.floor(player.pos.x / 1000)).toBe(7);
+    expect(crate.state).toBe("ground");
+    expect(world.orders.every((order) => !order.fulfilled)).toBe(true);
+  });
+
+  it("soft-locks L9's island rescue when the middle bridge is lifted before the shoal floods", () => {
+    const world = createWorld(withSoloTimeBonus(LEVELS[8]!), ["solo"]);
+    moveTo(world, "solo", 10, 2);
+    const events = press(world, "solo", -100);
+    expect(events.some((event) => event.type === "pickup" && event.itemKind === "plank")).toBe(true);
+    expect(world.sockets.has("9,2")).toBe(false);
+    while (!world.shoalFlooded && world.phase === "playing") step(world, new Map());
+    expect(world.sandbarFlooded).toBe(true);
+    expect(world.shoalFlooded).toBe(true);
+    const player = world.players.get("solo")!;
+    for (let tick = 0; tick < 20; tick += 1) step(world, new Map([["solo", input(-100)]]));
+    expect(Math.floor(player.pos.x / 1000)).toBe(10);
+    expect([...world.items.values()].find((item) => item.kind === "lantern" && item.pos.x === 12)?.state).toBe("ground");
+    expect([...world.items.values()].find((item) => item.kind === "crate" && item.pos.x === 7)?.state).toBe("ground");
+    expect(world.orders.every((order) => !order.fulfilled)).toBe(true);
+    expect(world.timeRemainingTicks).toBeGreaterThan(0);
+  });
+
   it.each(LEVELS)("%s map has consistent rows no wider than 22 tiles", (level) => {
     expect(level.map.length).toBeLessThanOrEqual(10);
     expect(level.map.every((row) => row.length === level.map[0]!.length && row.length <= 22)).toBe(true);
@@ -732,15 +1211,45 @@ describe("real-time simulation", () => {
     press(world, "solo");
     expect(crate.state).toBe("ground");
     expect(crate.pos).toMatchObject({ x: 13, y: 2 });
-    expect(LEVELS.slice(3, 6).every((level) => level.map.some((row) => row.includes("#")))).toBe(true);
+    expect(LEVELS.slice(3, 9).every((level) => level.map.some((row) => row.includes("#")))).toBe(true);
   });
 
-  it("uses a five-tile horizontal L6 river crossing with a nine-second ferry cycle", () => {
+  it("gives L8 two ferries with distinct periods and horizontal dock-to-dock paths", () => {
+    const ferries = LEVELS[7]!.ferries!;
+    const level = LEVELS[7]!;
+    const periods = ferries.map((ferry) => {
+      const [first, last] = [ferry.path[0]!, ferry.path[ferry.path.length - 1]!];
+      expect(ferry.path.every((point) => point.y === first.y)).toBe(true);
+      return 2 * Math.abs(last.x - first.x) / ferry.speedTilesPerSec + 2 * ferry.dwellSec;
+    });
+    expect(ferries).toHaveLength(2);
+    expect(periods[0]).not.toBe(periods[1]);
+    expect(level.sandbarFloodsAtSec).toBeUndefined();
+    expect(level.map[5]?.slice(10, 14)).toBe("~~~~");
+    expect(level.map[1]?.[15]).toBe("S");
+    expect(level.map[1]?.[20]).toBe("X");
+    expect(level.map[3]?.[8]).toBe(".");
+    expect(level.map[3]?.[7]).toBe("S");
+  });
+
+  it("keeps L7's piano route south of the cottage obstacle lane", () => {
+    const map = LEVELS[6]!.map;
+    const cottages: Tile[] = [[15, 4], [17, 4], [15, 5]];
+    expect(map[2]?.[3]).toBe(".");
+    expect(map[2]?.[19]).toBe(".");
+    expect(map[6]?.[1]).toBe("K");
+    expect(map[6]?.[20]).toBe("m");
+    expect(map[5]?.[20]).toBe("X");
+    expect(cottages.every(([x, y]) => map[y]?.[x] === "#")).toBe(true);
+  });
+
+  it("uses a five-tile horizontal L6 river crossing with a 1.5-second dock dwell and nine-second cycle", () => {
     const ferry = LEVELS[5]!.ferries![0]!;
     const [start, end] = [ferry.path[0]!, ferry.path[ferry.path.length - 1]!];
     const roundTripSec = 2 * Math.abs(end.x - start.x) / ferry.speedTilesPerSec + 2 * ferry.dwellSec;
     expect(ferry.path.every((point) => point.y === start.y)).toBe(true);
     expect(Math.abs(end.x - start.x)).toBeGreaterThanOrEqual(5);
+    expect(ferry.dwellSec).toBeGreaterThanOrEqual(1.5);
     expect(roundTripSec).toBeGreaterThanOrEqual(8);
     expect(roundTripSec).toBeLessThanOrEqual(10);
   });
@@ -973,6 +1482,27 @@ describe("real-time simulation", () => {
     const player = world.players.get("solo")!;
     expect(player.pos.y).toBe(3300);
     expect(Math.floor(player.pos.y / 1000)).toBe(3);
+    expect(player.state).toBe("normal");
+  });
+
+  it("corrects a 300-milli bridge approach while the courier keeps moving", () => {
+    const level: LevelDefinition = {
+      id: "bridge-correction",
+      title: "Bridge correction",
+      timeLimitSec: 30,
+      stars: { three: 20, two: 10 },
+      map: ["~~~~~~~~~~~~", "~S....=...z~", "~~~~~~~~~~~~"],
+      orders: [{ itemKind: "crate", zone: "z", label: "End" }],
+      recipients: { z: "End" },
+    };
+    const world = createWorld(level, ["solo"]);
+    const player = world.players.get("solo")!;
+    player.pos = { x: 5500, y: 1800 };
+
+    for (let tick = 0; tick < 16; tick += 1) step(world, new Map([["solo", input(100)]]));
+
+    expect(player.pos.x).toBeGreaterThan(7000);
+    expect(player.pos.y).toBeLessThan(1800);
     expect(player.state).toBe("normal");
   });
 

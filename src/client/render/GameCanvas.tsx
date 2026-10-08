@@ -242,30 +242,41 @@ function drawPiano(g: Graphics, x: number, y: number, size: number): void {
     left + width, top + height * 0.78,
     left + width * 0.84, top + height,
     left, top + height,
-  ]).fill({ color: 0x3c2117 });
-  g.rect(left + width * 0.08, top + height * 0.12, width * 0.82, height * 0.66).fill({ color: 0x5a3020 });
+  ]).fill({ color: 0x704326 });
+  g.poly([
+    left, top + height * 0.12,
+    left + width * 0.18, top,
+    left + width, top,
+    left + width, top + height * 0.14,
+    left + width * 0.08, top + height * 0.25,
+  ]).fill({ color: 0xa66b3e }).stroke({ color: 0xd4a06b, width: 2 });
+  g.rect(left + width * 0.08, top + height * 0.17, width * 0.82, height * 0.61).fill({ color: 0x905a34 });
   g.rect(left + width * 0.13, top + height * 0.2, width * 0.72, height * 0.47)
-    .fill({ color: 0x47271b })
-    .stroke({ color: 0x291811, width: 1.5 });
-  g.rect(left + width * 0.1, top + height * 0.68, width * 0.78, height * 0.13).fill({ color: 0xead9b3 });
-  g.rect(left + width * 0.1, top + height * 0.68, width * 0.78, height * 0.08).fill({ color: 0x211b18 });
+    .fill({ color: 0x7a492b })
+    .stroke({ color: 0x5a351f, width: 1.5 });
+  g.rect(left + width * 0.1, top + height * 0.68, width * 0.78, height * 0.13)
+    .fill({ color: 0xfff1d5 })
+    .stroke({ color: 0x5d3a24, width: 1 });
   for (let key = 1; key < 10; key += 1) {
     const keyX = left + width * (0.1 + key * 0.078);
-    g.rect(keyX, top + height * 0.68, 1.5, height * 0.13).fill({ color: 0x6b5740 });
+    g.rect(keyX, top + height * 0.68, 1, height * 0.13).fill({ color: 0xc4b292 });
   }
   for (const key of [1, 2, 4, 5, 6, 8]) {
     g.roundRect(left + width * (0.1 + key * 0.078) - 2, top + height * 0.68, 4, height * 0.065, 1)
-      .fill({ color: 0x211b18 });
+      .fill({ color: 0x30241d });
   }
-  g.rect(left + width * 0.78, top + height * 0.23, width * 0.09, height * 0.08).fill({ color: 0x2a1a13 });
   g.poly([
     left + width * 0.08, top + height * 0.8,
     left + width * 0.9, top + height * 0.8,
     left + width * 0.84, y,
     left + width * 0.14, y,
-  ]).fill({ color: 0x3a2118 });
+  ]).fill({ color: 0x81502f });
   g.rect(left + width * 0.08, top + height * 0.12, width * 0.82, height * 0.66)
-    .stroke({ color: 0x231711, width: 2 });
+    .stroke({ color: 0x59351f, width: 2 });
+  for (const legX of [left + width * 0.11, left + width * 0.78]) {
+    g.roundRect(legX, top + height * 0.79, width * 0.09, height * 0.2, 2).fill({ color: 0x59351f });
+    g.circle(legX + width * 0.045, y + height * 0.03, size * 0.035).fill({ color: 0x756b58 });
+  }
 }
 
 function drawCottage(g: Graphics, x: number, y: number, size: number, depth: number): void {
@@ -466,7 +477,7 @@ export function GameCanvas({ level, world, players }: Props): JSX.Element {
 
         for (const ferry of current?.ferries ?? []) {
           queue.push({
-            y: ferry.y / 1000 + 0.5,
+            y: ferry.y / 1000,
             draw: () => {
               const p = cam.project(ferry.x / 1000, ferry.y / 1000);
               const g = pooledGraphics(`ferry-${ferry.id}`);
@@ -488,47 +499,111 @@ export function GameCanvas({ level, world, players }: Props): JSX.Element {
         for (const order of current?.orders ?? []) {
           zoneDone.set(order.zone, (zoneDone.get(order.zone) ?? true) && order.fulfilled);
         }
+        const zoneEntries: Array<{ tile: string; x: number; y: number }> = [];
         const seenZones = new Set<string>();
+        const exitEntries: Array<{ x: number; y: number }> = [];
         lvl.map.forEach((row, y) => {
           [...row].forEach((tile, x) => {
-            if (tile === "X") {
-              queue.push({
-                y: y + 0.1,
-                draw: () => {
-                  const g = pooledGraphics(`flag-${x}-${y}`);
-                  const p = cam.project(x + 0.78, y + 0.35);
-                  const wave = Math.sin(time / 240) * T * 0.04;
-                  g.rect(p.x - 1.5, p.y - T * 0.95, 3, T * 0.95).fill({ color: 0x5b4632 });
-                  g.poly([p.x + 1.5, p.y - T * 0.95, p.x + T * 0.42, p.y - T * 0.83 + wave, p.x + 1.5, p.y - T * 0.7]).fill({ color: 0xe0583f });
-                  actors.addChild(g);
-                  const tag = label(`exit-${x}-${y}`, "EXIT", Math.max(10, T * 0.16), 0xffffff, 0x8a4a2a);
-                  const c = cam.project(x + 0.5, y + 0.95);
-                  tag.position.set(c.x, c.y);
-                  actors.addChild(tag);
-                },
-              });
-            }
+            if (tile === "X") exitEntries.push({ x, y });
             if (!isZone(tile) || seenZones.has(tile)) return;
             seenZones.add(tile);
-            queue.push({
-              y: y + 0.2,
-              draw: () => {
-                const p = cam.project(x + 0.5, y + 0.55);
-                const box = sprite(`postbox-${tile}`, tex.postbox);
-                box.height = T * 0.95;
-                box.width = box.height * (tex.postbox.width / tex.postbox.height);
-                box.position.set(p.x, p.y);
-                actors.addChild(box);
-                const done = zoneDone.get(tile) ?? false;
-                const name = lvl.recipients[tile] ?? tile.toUpperCase();
-                const tag = label(`zone-${tile}`, done ? `${name} ✓` : name, Math.max(11, T * 0.17), done ? 0xe9ffe8 : 0xffffff, done ? 0x2f6b45 : 0x5a4630);
-                tag.anchor.set(0, 0.5);
-                tag.position.set(p.x + box.width / 2 + 4, p.y - T * 0.5);
-                actors.addChild(tag);
-              },
-            });
+            zoneEntries.push({ tile, x, y });
           });
         });
+        type ScreenRect = { left: number; top: number; right: number; bottom: number };
+        const intersects = (a: ScreenRect, b: ScreenRect): boolean =>
+          a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top;
+        const exitLabelRects: ScreenRect[] = exitEntries.map(({ x, y }) => {
+          const tag = label(`exit-${x}-${y}`, "EXIT", Math.max(10, T * 0.16), 0xffffff, 0x8a4a2a);
+          const p = cam.project(x + 0.5, y + 0.95);
+          return {
+            left: p.x - tag.width / 2 - 2,
+            top: p.y - tag.height - 2,
+            right: p.x + tag.width / 2 + 2,
+            bottom: p.y + 2,
+          };
+        });
+        const postboxRects: ScreenRect[] = zoneEntries.map(({ x, y }) => {
+          const p = cam.project(x + 0.78, y + 0.3);
+          const boxHeight = T * 0.8;
+          const boxWidth = boxHeight * (tex.postbox.width / tex.postbox.height);
+          return {
+            left: p.x - boxWidth / 2,
+            top: p.y - boxHeight,
+            right: p.x + boxWidth / 2,
+            bottom: p.y,
+          };
+        });
+        const placedLabelRects = [...exitLabelRects];
+        const zoneLabelPositions = new Map<string, { x: number; y: number }>();
+        zoneEntries.forEach(({ tile }, index) => {
+          const box = postboxRects[index]!;
+          const name = lvl.recipients[tile] ?? tile.toUpperCase();
+          const done = zoneDone.get(tile) ?? false;
+          const tag = label(`zone-${tile}`, done ? `${name} ✓` : name, Math.max(11, T * 0.17), done ? 0xe9ffe8 : 0xffffff, done ? 0x2f6b45 : 0x5a4630);
+          tag.anchor.set(0, 0.5);
+          const width = tag.width;
+          const height = tag.height;
+          const gap = 5;
+          const centerY = (box.top + box.bottom) / 2;
+          const centerX = (box.left + box.right) / 2;
+          const candidates = [
+            { x: box.right + gap, y: centerY },
+            { x: centerX - width / 2, y: box.bottom + gap + height / 2 },
+            { x: box.left - gap - width, y: centerY },
+            { x: centerX - width / 2, y: box.top - gap - height / 2 },
+          ];
+          const rectFor = ({ x: left, y: center }: { x: number; y: number }): ScreenRect => ({
+            left: left - 2,
+            top: center - height / 2 - 2,
+            right: left + width + 2,
+            bottom: center + height / 2 + 2,
+          });
+          const position = candidates.find((candidate) => {
+            const candidateRect = rectFor(candidate);
+            return !postboxRects.some((other, otherIndex) => otherIndex !== index && intersects(candidateRect, other)) &&
+              !placedLabelRects.some((other) => intersects(candidateRect, other));
+          }) ?? candidates[0]!;
+          zoneLabelPositions.set(tile, position);
+          placedLabelRects.push(rectFor(position));
+        });
+        for (const { x, y } of exitEntries) {
+          queue.push({
+            y: y + 0.1,
+            draw: () => {
+              const g = pooledGraphics(`flag-${x}-${y}`);
+              const p = cam.project(x + 0.78, y + 0.35);
+              const wave = Math.sin(time / 240) * T * 0.04;
+              g.rect(p.x - 1.5, p.y - T * 0.95, 3, T * 0.95).fill({ color: 0x5b4632 });
+              g.poly([p.x + 1.5, p.y - T * 0.95, p.x + T * 0.42, p.y - T * 0.83 + wave, p.x + 1.5, p.y - T * 0.7]).fill({ color: 0xe0583f });
+              actors.addChild(g);
+              const tag = label(`exit-${x}-${y}`, "EXIT", Math.max(10, T * 0.16), 0xffffff, 0x8a4a2a);
+              const c = cam.project(x + 0.5, y + 0.95);
+              tag.position.set(c.x, c.y);
+              actors.addChild(tag);
+            },
+          });
+        }
+        for (const { tile, x, y } of zoneEntries) {
+          queue.push({
+            y: y + 0.2,
+            draw: () => {
+              const p = cam.project(x + 0.78, y + 0.3);
+              const box = sprite(`postbox-${tile}`, tex.postbox);
+              box.height = T * 0.8;
+              box.width = box.height * (tex.postbox.width / tex.postbox.height);
+              box.position.set(p.x, p.y);
+              actors.addChild(box);
+              const done = zoneDone.get(tile) ?? false;
+              const name = lvl.recipients[tile] ?? tile.toUpperCase();
+              const tag = label(`zone-${tile}`, done ? `${name} ✓` : name, Math.max(11, T * 0.17), done ? 0xe9ffe8 : 0xffffff, done ? 0x2f6b45 : 0x5a4630);
+              tag.anchor.set(0, 0.5);
+              const position = zoneLabelPositions.get(tile)!;
+              tag.position.set(position.x, position.y);
+              actors.addChild(tag);
+            },
+          });
+        }
 
         for (const item of current?.items ?? []) {
           if (item.state !== "ground") continue;
@@ -561,22 +636,32 @@ export function GameCanvas({ level, world, players }: Props): JSX.Element {
 
         const many = (current?.players.length ?? 0) > 1;
         for (const player of current?.players ?? []) {
-          const target = { x: player.x / 1000, y: player.y / 1000 };
+          const ferry = current?.ferries.find((candidate) =>
+            Math.abs(candidate.x - player.x) < 500 && Math.abs(candidate.y - player.y) < 500,
+          );
+          const target = ferry
+            ? { x: ferry.x / 1000, y: ferry.y / 1000 }
+            : { x: player.x / 1000, y: player.y / 1000 };
           let s = smooth.get(player.id);
           if (!s || Math.hypot(target.x - s.x, target.y - s.y) > 1.6) {
             s = { x: target.x, y: target.y, flip: 1, lastMove: 0 };
             smooth.set(player.id, s);
           }
-          const nx = s.x + (target.x - s.x) * 0.45;
-          const ny = s.y + (target.y - s.y) * 0.45;
-          if (Math.abs(nx - s.x) > 0.002 || Math.abs(ny - s.y) > 0.002) s.lastMove = time;
-          if (nx - s.x < -0.002) s.flip = -1;
-          else if (nx - s.x > 0.002) s.flip = 1;
-          s.x = nx;
-          s.y = ny;
+          if (ferry) {
+            s.x = target.x;
+            s.y = target.y;
+          } else {
+            const nx = s.x + (target.x - s.x) * 0.45;
+            const ny = s.y + (target.y - s.y) * 0.45;
+            if (Math.abs(nx - s.x) > 0.002 || Math.abs(ny - s.y) > 0.002) s.lastMove = time;
+            if (nx - s.x < -0.002) s.flip = -1;
+            else if (nx - s.x > 0.002) s.flip = 1;
+            s.x = nx;
+            s.y = ny;
+          }
           const pos = { x: s.x, y: s.y };
           const flip = s.flip;
-          const moving = time - s.lastMove < 120;
+          const moving = !ferry && time - s.lastMove < 120;
           queue.push({
             y: pos.y,
             draw: () => {
