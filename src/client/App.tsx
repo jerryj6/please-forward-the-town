@@ -10,7 +10,7 @@ import { useMemo, useRef, useState } from "react";
 import { PftEngine, analyzeOrderStatuses } from "../engine/pft/engine.js";
 import type { PftAction, PftLevel, PftPlayState } from "../engine/pft/types.js";
 import type { GameEvent } from "../engine/contracts.js";
-import { PFT01_LAST_CROSSING } from "../content/levels/pft01-last-crossing.js";
+import { LEVELS as LEVEL_DEFS, CARDS } from "../content/levels/index.js";
 import SceneView from "./SceneView";
 import LedgerView, { type LedgerEntry } from "./TimelineView";
 import HintLadder from "./HintLadder";
@@ -18,17 +18,24 @@ import { PFT_HINTS } from "./hints";
 import { actionSlug, describeAction, describeOrder, nameOf } from "./describe";
 import { RoomClient } from "./net/roomClient.js";
 
-const LEVELS: { level: PftLevel; chapter: string; blurb: string }[] = [
-  {
-    level: PFT01_LAST_CROSSING,
+const BLURBS: Record<string, { chapter: string; blurb: string }> = {
+  "PFT-01": {
     chapter: "Contract 01 — Crossing",
     blurb: "A lantern on the wrong bank, a bridge the museum wants, and one ferry with room for a single parcel.",
   },
-];
+};
+
+const LEVELS: { level: PftLevel; chapter: string; blurb: string }[] = LEVEL_DEFS.map(
+  ({ id, def }) => ({
+    level: def,
+    chapter: BLURBS[id]?.chapter ?? `Contract ${id.split("-")[1]} — ${def.title}`,
+    blurb: BLURBS[id]?.blurb ?? def.title,
+  }),
+);
 
 export default function App() {
   const [screen, setScreen] = useState<"title" | "select" | "play" | "lobby">("title");
-  const [level, setLevel] = useState<PftLevel>(PFT01_LAST_CROSSING);
+  const [level, setLevel] = useState<PftLevel>(LEVEL_DEFS[0].def);
   const net = useRef<RoomClient | null>(null);
   const netState = useRef<{ setGs?: (s: PftPlayState) => void }>({});
   const [roomCode, setRoomCode] = useState<string | null>(null);
@@ -284,7 +291,14 @@ function PlayScreen({
             </button>
             {verdict && !verdict.accepted ? <p className="warn">{verdict.reason ?? "Not accepted."}</p> : null}
           </section>
-          {PFT_HINTS[level.levelId] ? <HintLadder content={PFT_HINTS[level.levelId]!} /> : null}
+          {(() => {
+            const content =
+              PFT_HINTS[level.levelId] ??
+              (CARDS[level.levelId.toUpperCase()]
+                ? { tiers: [...CARDS[level.levelId.toUpperCase()]!.hints] }
+                : undefined);
+            return content ? <HintLadder content={content} /> : null;
+          })()}
         </aside>
       </div>
 
