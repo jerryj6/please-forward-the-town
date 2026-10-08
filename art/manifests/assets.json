@@ -170,6 +170,12 @@
    "sha256": "58aca7f3098d8013b87b88fbeb3a67bae0765d1e1a18cac15d3a7f70ce38ecfa",
    "bytes": 117885,
    "source": "ChatGPT Desktop generated (see /Users/devin/art/MANIFEST.md)"
+  },
+  {
+   "path": "public/assets/pft-cover-2400.png",
+   "sha256": "7e3768658f22fed8746efffff0befcf974c16ae66f512697c52ec48704785b2e",
+   "bytes": 5493947,
+   "source": "ChatGPT Desktop generated; submission-final 2400x1350 upscale of the cover anchor (AI render + exact-size crop/resample)"
   }
  ]
 }
