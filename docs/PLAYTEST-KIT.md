@@ -4,7 +4,7 @@
 You are a real human playtester — your session is evidence for gate G5, so play honestly and report what actually happened, including confusion and boredom.
 
 ## Run the game
-1. Open the public URL: (pending deploy — check RELEASE-STATUS.json)
+1. Open the public URL: https://please-forward-the-town.onrender.com — no install needed. (First load after idle may take ~30s to wake the free-tier host.)
    - Local fallback: `npm ci && npm run build && npm start` → http://localhost:10000
 2. Play the tutorial (PFT-01) cold. Do not read docs first.
 3. Then play at least two more levels of your choice.
