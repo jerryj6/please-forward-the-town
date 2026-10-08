@@ -31,7 +31,9 @@ interface Props {
 type Tile = string | undefined;
 const isSocket = (t: Tile): boolean => t === "=" || t === "-";
 const isSandbar = (t: Tile): boolean => t === ",";
-const isLand = (t: Tile): boolean => t !== undefined && t !== "~" && !isSocket(t) && !isSandbar(t);
+const isShoal = (t: Tile): boolean => t === ";";
+const isLowShore = (t: Tile): boolean => isSandbar(t) || isShoal(t);
+const isLand = (t: Tile): boolean => t !== undefined && t !== "~" && !isSocket(t) && !isLowShore(t);
 const isZone = (t: Tile): boolean => t !== undefined && t >= "a" && t <= "z";
 
 function hash(x: number, y: number): number {
@@ -56,12 +58,25 @@ function sandbarFlooded(level: LevelDefinition, world: WorldSnapshot | null): bo
   return flag ?? world.timeRemainingTicks <= at * 20;
 }
 
+function shoalFlooded(level: LevelDefinition, world: WorldSnapshot | null): boolean {
+  const at = level.shoalFloodsAtSec;
+  if (at === undefined || !world) return false;
+  return world.shoalFlooded ?? world.timeRemainingTicks <= at * 20;
+}
+
 /** Visible height of a block's front face above the waterline; the tide eats it. */
 function exposedFace(cam: DioramaCamera, progress: number): number {
   return cam.face * (0.92 - 0.55 * progress);
 }
 
-function drawTerrain(g: Graphics, level: LevelDefinition, cam: DioramaCamera, progress: number, flooded: boolean): void {
+function drawTerrain(
+  g: Graphics,
+  level: LevelDefinition,
+  cam: DioramaCamera,
+  progress: number,
+  flooded: boolean,
+  shoalIsFlooded: boolean,
+): void {
   const map = level.map;
   const T = cam.tile;
   const D = cam.depth;
@@ -73,14 +88,21 @@ function drawTerrain(g: Graphics, level: LevelDefinition, cam: DioramaCamera, pr
     for (let x = 0; x < row.length; x += 1) {
       const tile = row[x];
       const p = cam.project(x, y);
-      if (isSandbar(tile)) {
-        if (flooded) {
+      if (isLowShore(tile)) {
+        const shoal = isShoal(tile);
+        if (shoal ? shoalIsFlooded : flooded) {
           g.rect(p.x, p.y + D * 0.3, T, D * 0.5).fill({ color: 0x7cc3c2, alpha: 0.35 });
         } else {
           const low = face * 0.28;
-          if (!isLand(at(x, y + 1)) && !isSandbar(at(x, y + 1))) g.rect(p.x, p.y + D, T, low).fill({ color: 0xb79a63 });
-          g.rect(p.x, p.y, T, D).fill({ color: hash(x, y) > 0.5 ? 0xe4cf98 : 0xdcc58c });
-          g.rect(p.x + T * 0.15, p.y + D * (0.3 + hash(y, x) * 0.4), T * 0.3, 1.5).fill({ color: 0xc8ae74, alpha: 0.8 });
+          if (!isLand(at(x, y + 1)) && !isLowShore(at(x, y + 1))) {
+            g.rect(p.x, p.y + D, T, low).fill({ color: shoal ? 0x756b51 : 0xb79a63 });
+          }
+          const dryTop = shoal
+            ? (hash(x, y) > 0.5 ? 0x9d8e68 : 0x8e805f)
+            : (hash(x, y) > 0.5 ? 0xe4cf98 : 0xdcc58c);
+          g.rect(p.x, p.y, T, D).fill({ color: dryTop });
+          g.rect(p.x + T * 0.15, p.y + D * (0.3 + hash(y, x) * 0.4), T * 0.3, 1.5)
+            .fill({ color: shoal ? 0x70674f : 0xc8ae74, alpha: 0.8 });
         }
         continue;
       }
@@ -107,7 +129,7 @@ function drawTerrain(g: Graphics, level: LevelDefinition, cam: DioramaCamera, pr
         g.rect(p.x + 1, p.y + 1, T - 2, D - 2).stroke({ color: 0xbfa36e, width: 1, alpha: 0.7 });
       } else if (tile === "X") {
         for (let i = 1; i < 5; i += 1) g.rect(p.x, p.y + (D * i) / 5, T, 1.5).fill({ color: 0x8a6239, alpha: 0.8 });
-      } else {
+      } else if (tile !== "#") {
         for (let i = 0; i < 3; i += 1) {
           const h = hash(x * 3 + i, y * 7);
           const tx = p.x + T * (0.1 + h * 0.8);
@@ -207,6 +229,78 @@ function drawLantern(g: Graphics, x: number, y: number, size: number, time: numb
   g.roundRect(x - size * 0.34, y - size * 0.26, size * 0.68, size * 0.16, 3).fill({ color: 0x3d3a34 });
 }
 
+function drawPiano(g: Graphics, x: number, y: number, size: number): void {
+  const width = size * 0.9;
+  const height = size * 0.82;
+  const left = x - width / 2;
+  const top = y - height;
+  g.ellipse(x, y + size * 0.04, width * 0.55, size * 0.12).fill({ color: 0x000000, alpha: 0.18 });
+  g.poly([
+    left, top + height * 0.12,
+    left + width * 0.18, top,
+    left + width, top,
+    left + width, top + height * 0.78,
+    left + width * 0.84, top + height,
+    left, top + height,
+  ]).fill({ color: 0x3c2117 });
+  g.rect(left + width * 0.08, top + height * 0.12, width * 0.82, height * 0.66).fill({ color: 0x5a3020 });
+  g.rect(left + width * 0.13, top + height * 0.2, width * 0.72, height * 0.47)
+    .fill({ color: 0x47271b })
+    .stroke({ color: 0x291811, width: 1.5 });
+  g.rect(left + width * 0.1, top + height * 0.68, width * 0.78, height * 0.13).fill({ color: 0xead9b3 });
+  g.rect(left + width * 0.1, top + height * 0.68, width * 0.78, height * 0.08).fill({ color: 0x211b18 });
+  for (let key = 1; key < 10; key += 1) {
+    const keyX = left + width * (0.1 + key * 0.078);
+    g.rect(keyX, top + height * 0.68, 1.5, height * 0.13).fill({ color: 0x6b5740 });
+  }
+  for (const key of [1, 2, 4, 5, 6, 8]) {
+    g.roundRect(left + width * (0.1 + key * 0.078) - 2, top + height * 0.68, 4, height * 0.065, 1)
+      .fill({ color: 0x211b18 });
+  }
+  g.rect(left + width * 0.78, top + height * 0.23, width * 0.09, height * 0.08).fill({ color: 0x2a1a13 });
+  g.poly([
+    left + width * 0.08, top + height * 0.8,
+    left + width * 0.9, top + height * 0.8,
+    left + width * 0.84, y,
+    left + width * 0.14, y,
+  ]).fill({ color: 0x3a2118 });
+  g.rect(left + width * 0.08, top + height * 0.12, width * 0.82, height * 0.66)
+    .stroke({ color: 0x231711, width: 2 });
+}
+
+function drawCottage(g: Graphics, x: number, y: number, size: number, depth: number): void {
+  const width = size * 0.76;
+  const height = size * 0.72;
+  const left = x - width / 2;
+  const top = y - height;
+  g.ellipse(x, y + depth * 0.08, width * 0.64, depth * 0.2).fill({ color: 0x000000, alpha: 0.2 });
+  g.rect(left + width * 0.12, top + height * 0.34, width * 0.76, height * 0.58)
+    .fill({ color: 0xd1ad78 })
+    .stroke({ color: 0x624a34, width: 1.5 });
+  g.poly([
+    left + width * 0.04, top + height * 0.4,
+    x, top + height * 0.08,
+    left + width * 0.96, top + height * 0.4,
+    x, top + height * 0.58,
+  ]).fill({ color: 0x9a5236 }).stroke({ color: 0x583325, width: 1.5 });
+  g.poly([
+    x, top + height * 0.08,
+    left + width * 0.96, top + height * 0.4,
+    left + width * 0.96, top + height * 0.83,
+    x, top + height * 0.67,
+  ]).fill({ color: 0x7d442f });
+  g.rect(x - width * 0.1, top + height * 0.58, width * 0.2, height * 0.34)
+    .fill({ color: 0x65442f })
+    .stroke({ color: 0x3f3026, width: 1 });
+  g.rect(left + width * 0.22, top + height * 0.46, width * 0.18, height * 0.16)
+    .fill({ color: 0xb9d5cf })
+    .stroke({ color: 0x69533b, width: 1.5 });
+  g.rect(left + width * 0.62, top + height * 0.46, width * 0.18, height * 0.16)
+    .fill({ color: 0xb9d5cf })
+    .stroke({ color: 0x69533b, width: 1.5 });
+  g.rect(left + width * 0.76, top + height * 0.19, width * 0.12, height * 0.2).fill({ color: 0x79503a });
+}
+
 export function GameCanvas({ level, world, players }: Props): JSX.Element {
   const host = useRef<HTMLDivElement>(null);
   const [renderError, setRenderError] = useState(false);
@@ -295,19 +389,29 @@ export function GameCanvas({ level, world, players }: Props): JSX.Element {
         const D = cam.depth;
         const progress = tideProgress(lvl, current);
         const flooded = sandbarFlooded(lvl, current);
+        const shoalIsFlooded = shoalFlooded(lvl, current);
         const face = exposedFace(cam, progress);
 
-        const key = `${lvl.id}|${width}x${height}|${Math.round(progress * 100)}|${flooded}`;
+        const key = `${lvl.id}|${width}x${height}|${Math.round(progress * 100)}|${flooded}|${shoalIsFlooded}`;
         if (key !== terrainKey) {
           terrainKey = key;
           terrain.clear();
-          drawTerrain(terrain, lvl, cam, progress, flooded);
+          drawTerrain(terrain, lvl, cam, progress, flooded, shoalIsFlooded);
         }
         waterFx.clear();
         drawRipples(waterFx, width, height, time);
 
         ground.clear();
         actors.removeChildren();
+        for (const ferry of lvl.ferries ?? []) {
+          const points = ferry.path.map((point) => cam.project(point.x + 0.5, point.y + 0.5));
+          for (let index = 1; index < points.length; index += 1) {
+            const before = points[index - 1]!;
+            const after = points[index]!;
+            ground.moveTo(before.x, before.y).lineTo(after.x, after.y);
+          }
+          if (points.length > 1) ground.stroke({ color: 0x745333, width: Math.max(2, T * 0.025), alpha: 0.9 });
+        }
         const carryingPlank = current?.players.some((pl) => {
           const item = current.items.find((it) => it.id === pl.carrying);
           return item?.kind === "plank";
@@ -344,6 +448,41 @@ export function GameCanvas({ level, world, players }: Props): JSX.Element {
 
         type Actor = { y: number; draw: () => void };
         const queue: Actor[] = [];
+
+        lvl.map.forEach((row, y) => {
+          [...row].forEach((tile, x) => {
+            if (tile !== "#") return;
+            queue.push({
+              y: y + 0.9,
+              draw: () => {
+                const p = cam.project(x + 0.5, y + 0.9);
+                const g = pooledGraphics(`cottage-${x}-${y}`);
+                drawCottage(g, p.x, p.y, T, D);
+                actors.addChild(g);
+              },
+            });
+          });
+        });
+
+        for (const ferry of current?.ferries ?? []) {
+          queue.push({
+            y: ferry.y / 1000 + 0.5,
+            draw: () => {
+              const p = cam.project(ferry.x / 1000, ferry.y / 1000);
+              const g = pooledGraphics(`ferry-${ferry.id}`);
+              const width = T * 0.9;
+              const height = D * 0.72;
+              g.roundRect(p.x - width / 2, p.y - height / 2, width, height, D * 0.12).fill({ color: 0x8e5c35 });
+              for (let board = 1; board < 5; board += 1) {
+                const boardX = p.x - width / 2 + (width * board) / 5;
+                g.moveTo(boardX, p.y - height * 0.42).lineTo(boardX, p.y + height * 0.42).stroke({ color: 0x5d3a24, width: 2 });
+              }
+              g.roundRect(p.x - width / 2, p.y - height / 2, width, height, D * 0.12)
+                .stroke({ color: 0x412919, width: 2 });
+              actors.addChild(g);
+            },
+          });
+        }
 
         const zoneDone = new Map<string, boolean>();
         for (const order of current?.orders ?? []) {
@@ -401,6 +540,12 @@ export function GameCanvas({ level, world, players }: Props): JSX.Element {
               if (item.kind === "lantern") {
                 const g = pooledGraphics(`lantern-${item.id}`);
                 drawLantern(g, p.x, p.y, T * 0.62, time);
+                actors.addChild(g);
+                return;
+              }
+              if (item.kind === "piano") {
+                const g = pooledGraphics(`piano-${item.id}`);
+                drawPiano(g, p.x, p.y, T * 0.9);
                 actors.addChild(g);
                 return;
               }
@@ -473,6 +618,10 @@ export function GameCanvas({ level, world, players }: Props): JSX.Element {
               if (carried?.kind === "lantern") {
                 const g = pooledGraphics(`carry-${player.id}`);
                 drawLantern(g, p.x, headY, T * 0.5, time);
+                actors.addChild(g);
+              } else if (carried?.kind === "piano") {
+                const g = pooledGraphics(`carry-${player.id}`);
+                drawPiano(g, p.x, headY, T * 0.9);
                 actors.addChild(g);
               } else if (carried) {
                 const t = carried.kind === "crate" ? tex.crate : tex.plank;

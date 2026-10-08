@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { PointerEvent } from "react";
 import type { Input, SimEvent, World, WorldSnapshot } from "../rt/types.js";
-import { createWorld, snapshot, step } from "../rt/sim.js";
+import { createWorld, snapshot, step, withSoloTimeBonus } from "../rt/sim.js";
 import { LEVELS, getLevel } from "../rt/levels/index.js";
 import { pftAudio } from "./audio.js";
 import { GameCanvas, type PlayerDisplay } from "./render/GameCanvas.js";
 import { screenToWorld } from "./render/iso.js";
+import { LevelMiniMap } from "./LevelMiniMap.js";
 
 type Screen = "title" | "select" | "crew" | "lobby" | "game" | "results" | "credits";
 type GameMode = "solo" | "online";
@@ -56,6 +57,9 @@ const LEVEL_COPY: Record<string, string> = {
   L1: "Two crossings, one lantern, and a plank that must leave the town.",
   L2: "Move the bridges forward. There are fewer planks than gaps.",
   L3: "Two parcels, two shores, and one bridge that cannot stay.",
+  L4: "Take the low road before the tide takes it from you.",
+  L5: "Two broad spans, one narrow crossing, and cargo that must go first.",
+  L6: "The bridge gets you there. The ferry brings you home.",
 };
 
 function loadProgress(): Progress {
@@ -74,6 +78,11 @@ function loadProgress(): Progress {
 function formatTime(ticks: number): string {
   const seconds = Math.max(0, Math.ceil(ticks / 20));
   return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
+}
+
+function formatLevelDuration(seconds: number): string {
+  const roundedSeconds = Math.max(0, Math.ceil(seconds));
+  return `${Math.floor(roundedSeconds / 60)}:${String(roundedSeconds % 60).padStart(2, "0")}`;
 }
 
 function sendSocket(socket: WebSocket | null | undefined, message: unknown): void {
@@ -172,8 +181,9 @@ function GameScreen({
   onToggleMute,
 }: GameProps): JSX.Element {
   const level = getLevel(levelId) ?? LEVELS[0]!;
+  const runLevel = mode === "solo" ? withSoloTimeBonus(level) : level;
   const localWorld = useRef<World | null>(null);
-  if (mode === "solo" && !localWorld.current) localWorld.current = createWorld(level, [playerId]);
+  if (mode === "solo" && !localWorld.current) localWorld.current = createWorld(runLevel, [playerId]);
   const prediction = useRef<World | null>(null);
   if (mode === "online" && !prediction.current) prediction.current = createWorld(level, [playerId]);
   const interpolation = useRef<SnapshotInterpolation>({ previous: null, previousAt: 0, current: null, currentAt: 0 });
@@ -192,6 +202,7 @@ function GameScreen({
   const [joystickPosition, setJoystickPosition] = useState({ x: 0, y: 0 });
   const [toasts, setToasts] = useState<Array<{ id: number; text: string }>>([]);
   const [floodBannerVisible, setFloodBannerVisible] = useState(false);
+  const [floodBannerText, setFloodBannerText] = useState("The sandbar is under!");
   const [floodEventSeen, setFloodEventSeen] = useState(false);
   const toastSequence = useRef(0);
   const toastTimers = useRef(new Map<number, number>());
@@ -210,8 +221,9 @@ function GameScreen({
     }, 1500);
     toastTimers.current.set(id, timer);
   }, []);
-  const showFloodBanner = useCallback((): void => {
+  const showFloodBanner = useCallback((text: string): void => {
     setFloodEventSeen(true);
+    setFloodBannerText(text);
     setFloodBannerVisible(true);
     if (floodBannerTimer.current !== null) window.clearTimeout(floodBannerTimer.current);
     floodBannerTimer.current = window.setTimeout(() => {
@@ -228,7 +240,9 @@ function GameScreen({
     });
     playSimEvents(freshEvents, tick);
     for (const event of freshEvents) {
-      if (event.type === "flood") showFloodBanner();
+      if (event.type === "flood") {
+        showFloodBanner(event.tier === "shoal" ? "The shoal is under!" : "The sandbar is under!");
+      }
       if (event.type === "deliver") showToast(`Delivered to ${event.label}`);
       if (event.type === "splash" && event.playerId === playerId) showToast("Splash! Back to the dock");
     }
@@ -431,9 +445,9 @@ function GameScreen({
   };
 
   const seconds = Math.ceil(world.timeRemainingTicks / 20);
-  const ticksUntilFlood = level.sandbarFloodsAtSec === undefined
+  const ticksUntilFlood = runLevel.sandbarFloodsAtSec === undefined
     ? null
-    : world.timeRemainingTicks - level.sandbarFloodsAtSec * 20;
+    : world.timeRemainingTicks - runLevel.sandbarFloodsAtSec * 20;
   const sandbarWarningSeconds = ticksUntilFlood !== null &&
     !world.sandbarFlooded &&
     !floodEventSeen &&
@@ -445,7 +459,7 @@ function GameScreen({
 
   return (
     <main className="game-shell">
-      <GameCanvas level={level} world={world} players={playerNames} />
+      <GameCanvas level={runLevel} world={world} players={playerNames} />
       <header className="game-hud">
         <div className="hud-level">
           <span className="hud-kicker">{level.id} · COURIER SHIFT</span>
@@ -479,9 +493,11 @@ function GameScreen({
         </div>
       </header>
       <div className="hud-notifications" aria-live="polite">
-        {floodBannerVisible && <div className="hud-notification flood-banner">The sandbar is under!</div>}
         {toasts.map((toast) => <div className="hud-notification" key={toast.id}>{toast.text}</div>)}
       </div>
+      {floodBannerVisible && (
+        <div className="hud-flood-banner" role="status" aria-live="polite">{floodBannerText}</div>
+      )}
       <div className="courier-roster" aria-label="Crew">
         {Object.entries(playerNames).map(([id, player]) => (
           <div
@@ -525,9 +541,9 @@ function GameScreen({
             <h2 id="pause-title">Pause the crossing</h2>
             <p>The tide waits here. Your town does not.</p>
             <button className="primary" type="button" onClick={() => setPaused(false)}>Back to the town</button>
-            <button className="ghost" type="button" onClick={() => { setPaused(false); onExitRef.current(); }}>Levels</button>
+            <button className="secondary" type="button" onClick={() => { setPaused(false); onExitRef.current(); }}>Levels</button>
             {mode === "solo" && (
-              <button className="ghost" type="button" onClick={() => onRestartRef.current()}>Restart level</button>
+              <button className="secondary" type="button" onClick={() => onRestartRef.current()}>Restart level</button>
             )}
           </section>
         </div>
@@ -806,11 +822,8 @@ export default function App(): JSX.Element {
                 data-testid={`level-${level.id}`}
               >
                 <span className="route-top"><span>{String(index + 1).padStart(2, "0")} / ROUTE</span><span>{available ? `${progress.stars[level.id] ?? 0} ★` : "LOCKED"}</span></span>
-                <div className={`route-art route-art-${level.id.toLowerCase()}`} aria-hidden="true">
-                  <span className="route-water" /><span className="route-island route-island-a" /><span className="route-island route-island-b" />
-                  <span className="route-bridge" /><span className="route-parcel">✦</span>
-                </div>
-                <span className="route-id">{level.id} · {level.timeLimitSec / 60} MIN</span>
+                <LevelMiniMap level={level} />
+                <span className="route-id">{level.id} · {formatLevelDuration(level.timeLimitSec)}</span>
                 <strong>{level.title}</strong>
                 <span className="route-copy">{LEVEL_COPY[level.id]}</span>
                 <span className="route-footer"><span>{available ? "OPEN ROUTE" : `CLEAR ${LEVELS[index - 1]?.id} TO UNLOCK`}</span><b>{available ? "↗" : "⌁"}</b></span>

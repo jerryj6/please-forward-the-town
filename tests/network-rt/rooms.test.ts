@@ -158,4 +158,28 @@ describe("real-time WebSocket rooms", () => {
     );
     expect(resumedMovement.world.players.find((player) => player.id === guestWelcome.playerId)!.x).toBeGreaterThan(6500);
   });
+
+  it("serializes ferry positions in authoritative snapshots", async () => {
+    server = createServer();
+    rooms = startRtRoomServer(server);
+    await new Promise<void>((resolve) => server!.listen(0, "127.0.0.1", resolve));
+    const address = server.address();
+    if (!address || typeof address === "string") throw new Error("Expected ephemeral TCP address");
+    const host = new TestClient(`ws://127.0.0.1:${address.port}/rt`);
+    clients.push(host);
+    await host.open("Harbor");
+    host.send({ type: "create" });
+    await host.waitFor("welcome");
+    host.send({ type: "select", levelId: "L6" });
+    await host.waitFor("lobby", (message) => message.levelId === "L6");
+    host.send({ type: "start" });
+    await host.waitFor("lobby", (message) => message.phase === "playing");
+    const update = await host.waitFor<Message & {
+      world: { ferries: Array<{ id: string; x: number; y: number }> };
+    }>("snap", (message) => {
+      const state = message.world as { ferries?: Array<{ id: string; x: number; y: number }> };
+      return Array.isArray(state.ferries) && state.ferries.length === 1;
+    });
+    expect(update.world.ferries[0]).toMatchObject({ id: "ferry", x: 6500, y: 4500 });
+  });
 });

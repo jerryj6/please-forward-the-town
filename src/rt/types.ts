@@ -1,4 +1,4 @@
-export type ItemKind = "lantern" | "crate" | "plank";
+export type ItemKind = "lantern" | "crate" | "plank" | "piano";
 export type ItemState = "ground" | "carried" | "deployed" | "delivered";
 export type WorldPhase = "playing" | "completed" | "failed";
 export type Facing = "n" | "ne" | "e" | "se" | "s" | "sw" | "w" | "nw";
@@ -6,6 +6,22 @@ export type Facing = "n" | "ne" | "e" | "se" | "s" | "sw" | "w" | "nw";
 export interface Point {
   x: number;
   y: number;
+}
+
+export interface FerryDefinition {
+  id: string;
+  path: Point[];
+  speedTilesPerSec: number;
+  dwellSec: number;
+}
+
+export interface FerryState {
+  id: string;
+  x: number;
+  y: number;
+  pathIndex: number;
+  direction: 1 | -1;
+  dwellTicks: number;
 }
 
 export interface OrderDefinition {
@@ -27,6 +43,8 @@ export interface LevelDefinition {
   timeLimitSec: number;
   stars: { three: number; two: number };
   sandbarFloodsAtSec?: number;
+  shoalFloodsAtSec?: number;
+  ferries?: FerryDefinition[];
   map: string[];
   orders: OrderDefinition[];
   recipients: Record<string, string>;
@@ -72,6 +90,7 @@ export interface World {
   tick: number;
   timeRemainingTicks: number;
   sandbarFlooded: boolean;
+  shoalFlooded: boolean;
   phase: WorldPhase;
   stars: number;
   players: Map<string, Player>;
@@ -79,6 +98,7 @@ export interface World {
   orders: Order[];
   spawns: Point[];
   sockets: Map<string, string>;
+  ferries: FerryState[];
 }
 
 export type SimEvent =
@@ -87,7 +107,7 @@ export type SimEvent =
   | { type: "deliver"; playerId: string; itemId: string; orderId: string; label: string }
   | { type: "splash"; playerId: string }
   | { type: "respawn"; playerId: string }
-  | { type: "flood" }
+  | { type: "flood"; tier: "sandbar" | "shoal" }
   | { type: "complete"; stars: number }
   | { type: "failed"; message: "The tide's in" };
 
@@ -96,8 +116,10 @@ export interface WorldSnapshot {
   tick: number;
   timeRemainingTicks: number;
   sandbarFlooded: boolean;
+  shoalFlooded: boolean;
   phase: WorldPhase;
   stars: number;
+  ferries: Array<{ id: string; x: number; y: number }>;
   players: Array<{
     id: string;
     x: number;
