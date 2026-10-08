@@ -27,7 +27,8 @@
     "verify:production": "tsx scripts/verify-production.ts",
     "verify:all": "tsx scripts/verify-all.ts",
     "start": "node dist-server/server/main.js",
-    "check:content": "tsx scripts/card-vs-engine.mts"
+    "check:content": "tsx scripts/card-vs-engine.mts",
+    "check:content2": "tsx scripts/coop-necessity.mts"
   },
   "dependencies": {
     "pixi.js": "^8.5.2",

@@ -162,7 +162,8 @@ needs the stair again); Wren owns the water and the packing list. The
 conversation before the stair leaves: "who is still aloft?"
 
 **Solution space (bounded enumeration).** Complete DFS to par+4 (bound 22,
-1.6M states): 19 plans — two optimal 18-move plans plus variants at
+1.6M states): 19 plans → 15+ distinct multisets (no cosmetic inflation
+seen in explored space) — two optimal 18-move plans plus variants at
 19–22 including the hoist strategy (verified trace B). No under-par
 degenerate; no rung gap here (every length 18–22 has a plan).
 
@@ -320,7 +321,9 @@ lifts the sign at the new post until the tea is inside — the address
 disappears under anyone still standing on it.
 
 **Solution space (bounded enumeration).** Complete DFS to par+4 (bound 24):
-16 plans — two optimal 20-move plans, the rest scheduling variants to 24.
+16 plans → 11 distinct multisets. **One strategic optimum** — the two
+enumerated 20-move plans are a commute-reorder pair (verified at bound
+20: 2 plans, 1 multiset); the rest are scheduling variants to 24.
 
 ---
 
@@ -381,9 +384,10 @@ needs it — extraction is a shared resource.
 **Solution space (seeded-window enumeration, automated playtest).** Full
 DFS is intractable at four couriers (800k states capped before one
 completion). Bounding to the verified trace's final-8 window (bound 23):
-24 distinct completions — **6 share the optimal 21 moves**, 8 at 22,
-10 at 23. The optimum is a family of extraction schedules, not a single
-one — matches the `open` solution policy.
+24 completions → **14 distinct action-multisets** — **3 distinct optimal
+21-move strategies** (the 6 raw optima include commute-reorders), 4 at
+22, 7 at 23. The optimum is a small family of extraction schedules —
+matches the `open` solution policy.
 
 ---
 
@@ -442,8 +446,8 @@ ferryman and closer (every freight leg + the bridge sale). Exits are
 divergent by design — only the last rider ends East.
 
 **Solution space (seeded-window enumeration).** Final-8 window of the
-verified trace, bound 40: 7 completions — 2 optimal 38-move plans, 5 at
-40. **No 39-move plan exists** — same rung-gap pattern as PFT-03's
+verified trace, bound 40: 7 completions → 6 distinct multisets — 2
+optimal 38-move strategies, 4 at 40. **No 39-move plan exists** — same rung-gap pattern as PFT-03's
 missing 18: the fix a mistake costs a two-hop detour, so slack lands in
 even numbers.
 
@@ -518,9 +522,9 @@ documented plan, not an accident — and so par-beating schedules are
 expected.
 
 **Solution space (seeded-window enumeration).** Final-8 window of trace
-A, bound 30: 13 completions — 2 at 28, 3 at 29, 8 at 30. The window
-confirms both verified 28s in its neighborhood; plan C diverges too
-early to appear (documented above).
+A, bound 30: 13 completions → 11 distinct multisets — 2 at 28, 2 at
+29, 7 at 30. The window confirms both verified 28s in its neighborhood;
+plan C diverges too early to appear (documented above).
 
 ---
 
@@ -584,10 +588,10 @@ Finch has already lifted the sign, so teardown is a sequencing decision,
 not just a division of labor.
 
 **Solution space (seeded-window enumeration).** Final-8 window, bound
-30 — hit the 1M-state cap mid-window with 21 completions recorded (4 at
-29, 17 at 30); the 28-optimum wasn't reached before the cap. Honest
-bound: the office-move endgame is the densest branch point in the
-campaign.
+30 — hit the 1M-state cap mid-window with 21 completions recorded →
+12 distinct multisets (1 at 29, 11 at 30); the 28-optimum wasn't
+reached before the cap. Honest bound: the office-move endgame is the
+densest branch point in the campaign.
 
 ---
 
@@ -657,6 +661,42 @@ question — the plan fails unless the group agrees the west bank is done
 before the last bridge lifts.
 
 **Solution space (seeded-window enumeration).** Final-8 window of trace
-B, bound 46: 23 completions — **4 optimal 44-move plans**, 7 at 45,
-12 at 46. Four distinct optimal endings — the widest optimal family in
-the campaign.
+B, bound 46: 23 completions → 13 distinct multisets — **1 distinct
+optimal 44-move strategy** (all four raw optima are one strategy
+commuted), 4 at 45, 8 at 46. The finale's optimum is single-valued; its
+width sits in the +1/+2 slack plans.
+
+---
+
+## Appendix — Difficulty vectors (pass-10 enumeration, multiset-corrected)
+
+| Level | Min | Plans | Multisets | Optimal strategies | DENY-fragility (load-bearing verb) |
+|-------|-----|-------|-----------|--------------------|------------------------------------|
+| pft-01 | 9 | 5 | 5 | 1 | `pack` — zero completions without it |
+| pft-02 | 16 | 17 | 17 | 1 | `ride_ferry` required; `drop` optional (15 sols w/o) |
+| pft-03 | 17 | 8 | 8 | 1 | `deploy` required; no-18 rung gap |
+| pft-04 | 18 | 19* | 15+* | 2 | no single deny-able verb (stair starts deployed) |
+| pft-05 | 13 | 18 | 12 | 2 | `send` required |
+| pft-06 | 17 | 20 | 15 | 1 | `ride_ferry` required |
+| pft-07 | 20 | 16 | 11 | 1 | `pack` required |
+| pft-08 | 21 | 24† | 14† | 3 | `pack` required in endgame window |
+| pft-09 | 38 | 7† | 6† | 2 | `drop` load-bearing mid-game; no-39 rung gap |
+| pft-10 | 28 | 13† | 11† | 2 | `send` lives in prefix (window unchanged without it) |
+| pft-11 | 28 | 21† capped | 12† | ≥1 | `send` in prefix; optimum unreached at cap |
+| pft-12 | 44 | 23† | 13† | 1 | `send` in prefix |
+
+\* pft-04 caps at 1.5M states before full bound-22 exhaust; the second
+  optimal-18 wasn't reached in the multiset run. † seeded-window counts
+  (final-8 of a verified trace).
+
+**Ramp check — sawtooth, not monotone.** Min lengths: 9, 16, 17, 18, 13,
+17, 20, 21, 38, 28, 28, 44. Two honest inversions: pft-05's 13 sits
+below pft-04's 18 (designed breather after the loft spike), and pft-09's
+38 is the campaign's hard spike before the 28/28/44 finale climb.
+Optimal-strategy counts do not track min length — pft-12's finale is
+single-valued while pft-05's smallest level holds the widest optimal
+family (2). Difficulty is driven by plan-space shape, not level size.
+
+**CoopNote verification (courier-removal method):** all 52 courier
+streams across 18 winning traces are load-bearing — deleting any single
+courier's actions leaves the level incomplete. No filler roles.
