@@ -293,3 +293,174 @@ sign a last time, and files it at the registry.
 **Coop note.** Lark owns the sign; Wren owns the cargo. The one rule: nobody
 lifts the sign at the new post until the tea is inside — the address
 disappears under anyone still standing on it.
+
+---
+
+## PFT-08 — No One Left on West (`pft-08`)
+
+*Four couriers, three bank errands, two bridges — and everyone goes home
+East. The title is the trap: pack either bridge while a teammate still
+needs it and the far bank fills with stranded orders.*
+
+Chapter-3 interdependence: infrastructure removal affects several couriers.
+Two crossings serve the West bank — the plank bridge (West–Middle) and the
+Town Span (Middle–East) — plus a 1/1 packet ferry with shore-side handling
+at East. Retrieval, handoff, and return must all be coordinated before the
+paperwork: six deliveries, two bridge sales, a ferry hand-over, and four
+divergent-but-East-side exits.
+
+**Verified trace (21 moves, par).** Wren runs the Upland fetch (plank
+bridge, orchard path) and walks the sunstone over the Town Span to the
+archives; Lark carries the market ledger to the Slip annex, walks back,
+packs the plank bridge at Middle and ships it across the span to the
+museum; Finch rides the engine over on the packet ferry and closes the
+drydock on Slip; Sparrow — already posted East — signs the ferry over to
+the harbor-master, then lifts the Town Span at its East foot and files it
+at the foundry. Nobody is left on West.
+
+**Designed wrong approaches.**
+1. *Pack under the runners:* lifting the plank bridge while couriers still
+   need the west bank strands the sunstone, the ledger, and Wren's exit —
+   `redeploy` while carried, `undo` once it is filed at the museum.
+2. *Sell the span early:* hand over the ferry AND lift the Town Span while
+   Lark is still at Middle — parcels parked on the far bank need both
+   crossings (recovery `undo`), while a Middle courier's exit stays
+   `redeploy` (any live bridge could be re-set on the channel).
+3. *Full hold at the signing:* handing the ferry over with the engine
+   still aboard is refused — the hold must ride in empty.
+4. *Wrong shore:* signing over from Middle — "shore-side handling is at
+   east".
+5. *Sold boat:* riding after the hand-over is refused — "has been handed
+   over".
+
+**Hint ladder.**
+1. The Town Span is the crossing that lets four couriers end on the far
+   shore — a ferry only ever leaves one rider there. Count who still needs
+   the west bank before anyone packs a thing.
+2. Work west to east: Upland and Market errands first, then the bridge
+   carried over the span, then the ferry run — and only then the paperwork.
+3. Wren: north fetch, span, archives, done. Lark: ledger to the annex,
+   back, pack the plank bridge, museum, Slip. Finch: engine on the ferry,
+   drydock, Slip. Sparrow: sign the ferry at East, lift the span, file it
+   at the foundry.
+
+**Coop note.** Four distinct jobs, one shared spine: Wren owns the Upland
+fetch, Lark owns the Market leg and the plank bridge, Finch owns the ferry
+freight run, Sparrow owns the far-shore paperwork (ferry sale, span lift).
+The agreement that matters: nobody lifts a bridge while a teammate still
+needs it — extraction is a shared resource.
+
+---
+
+## PFT-09 — Three Useful Parcels (`pft-09`)
+
+*Tonight every tool becomes cargo — the staircase that reaches the loft,
+the bridge that crosses the creek, the mailbox that sends the records. A
+tool only ships after it has finished being a tool.*
+
+Chapter-3 escalation: several infrastructure obligations interact — bridge,
+stairs, and relay are used as tools before their own deliveries on a finite
+graph with one solvable dependency order. The apparent cycle (bridge sale
+traps the stair-runner) resolves through the taught temporary-staging
+idiom: `drop` parks any carried parcel or packed piece at a node for the
+ferryman to collect — never hidden teleportation.
+
+**Verified trace (38 moves, par).** Lark hikes the orchard path to the
+relay post, sends the staged records East, packs the relay mailbox and
+files it at the Middle depot, then walks back to the North post; Finch
+climbs the elm staircase for the tapestry, stages it at Middle, packs the
+staircase at its West foot and stages it for the boat; Wren fetches the
+tea set and stages it at Middle, exits the West gate; Sparrow runs four
+freight legs — tea to the conservatory, records from the quay to the
+archives, tapestry to the Slip gallery, staircase to the observatory — then
+packs the plank bridge, sails it to the museum, and closes the East exit.
+
+**Designed wrong approaches.**
+1. *The apparent cycle:* pack the plank bridge while the loft runner is
+   still west-side and the mail is dead — tea, tapestry, and the runner's
+   exit strand together (`redeploy` while carried, `undo` once filed).
+2. *Occupied structure:* the staircase cannot be packed while a courier or
+   the tapestry is still on the loft (PFT-006).
+3. *Dead link:* send after the mailbox is packed — "link inactive".
+4. *Wrong socket:* the elm staircase on the flat West–Middle frame is
+   refused on declared heights (PFT-009); the mailbox on a bridge frame is
+   refused on kind.
+5. *Capacity:* a second parcel aboard the harbor ferry is refused; a
+   carried parcel will not mail — it must be staged at the post.
+
+**Hint ladder.**
+1. Every tool becomes cargo tonight — but only after it has finished being
+   a tool. Send before packing the post, fetch before packing the stair,
+   empty the west bank before selling the bridge.
+2. The records are already staged on the relay post: one send, no fetch.
+   The loft only exists while the staircase stands — bring everything down
+   before you lift it.
+3. Lark: post → send → mailbox to the depot → North post. Finch: loft →
+   tapestry down → pack the stair → stage it → dock office. Wren: tea →
+   Middle → West gate. Sparrow: tea, records, tapestry, stair by ferry,
+   then the bridge — East exit.
+
+**Coop note.** Four distinct contributions: Lark is the postal courier
+(send + relay decommission), Finch is the climber (stair fetch + stair
+packing), Wren is the market runner (west fetch + staging), Sparrow is the
+ferryman and closer (every freight leg + the bridge sale). Exits are
+divergent by design — only the last rider ends East.
+
+---
+
+## PFT-10 — The Detour Dividend (`pft-10`)
+
+*Two honest ways to close the same night: keep the bridge bolted and let
+the ferry do freight — or pay one ride to re-set the bridge as a span and
+never worry about capacity again. The detour is the dividend.*
+
+Chapter-3 capstone: distinct strategies trade route setup for cargo
+handling. Both plans run 28 moves but wear completely different
+infrastructure signatures — Plan A commits zero piece deployments and sends
+one parcel; Plan B commits two sends and one redeployment (the bridge moves
+to the channel socket, then ships to the museum from its East foot). The
+final states are identical; the paths there are not.
+
+**Verified trace A — "Ferry freight" (28 moves, par).** The bridge stays
+bolted to the West creek; Finch stages the cider at Middle, Lark mails the
+deeds and files the mailbox, Sparrow rides once to receive the mail and
+once back, and Wren runs five ferry legs — cider to the tavern, granite to
+the monument, bridge to the museum — closing the East exit.
+
+**Verified trace B — "The span pays" (28 moves, par).** Finch hauls the
+cider to the North post and mails it, Lark mails the deeds and
+decommissions the mailbox; then Wren packs the bridge, rides it across
+once, sets it on the channel socket, walks the granite to the monument,
+files cider and deeds on the quay — and finally lifts the span from its
+East foot for the museum. Seven ferry legs against one; the dividend is
+that the crossing itself becomes cargo.
+
+**Designed wrong approaches.**
+1. *Trap a runner:* pack the west bridge while Wren is still on the bank —
+   his East exit strands (`redeploy` while carried, `undo` once it is at
+   the museum). The mail cannot carry people home.
+2. *Wrong foot:* the channel socket is handled from East — deploying the
+   span from Middle is refused; you pay one ferry ride to set it.
+3. *Dead link:* pack the relay mailbox and the post goes silent — "link
+   inactive" on send.
+4. *Kind mismatch:* the mailbox will not stand on a bridge socket; the
+   bridge will not stand on the post ("does not accept").
+5. *Capacity:* two parcels will not ride the harbor ferry — the hold takes
+   one.
+
+**Hint ladder.**
+1. Count the crossings the bridge itself must make tonight: it only has to
+   be a bridge on ONE side at a time. Where you keep it decides what else
+   has to ride the ferry.
+2. The channel socket is worked from its East foot — whoever sets the span
+   must already be across. One ride buys a crossing everyone else walks
+   for free.
+3. Plan A: never repack until the end — ferry legs do the work. Plan B:
+   mail everything on the west bank first, then carry the bridge east and
+   re-set it — after that there is no capacity problem at all.
+
+**Coop note.** Four distinct contributions either way: a postal runner
+(Lark), a west runner (Finch), an east-leg receiver (Sparrow), and the
+closer who carries the bridge sale (Wren). In plan A the ferryman is the
+bottleneck role; in plan B the span-setter is — split the jobs before the
+first pack.
