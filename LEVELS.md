@@ -524,7 +524,10 @@ expected.
 **Solution space (seeded-window enumeration).** Final-8 window of trace
 A, bound 30: 13 completions → 11 distinct multisets — 2 at 28, 2 at
 29, 7 at 30. The window confirms both verified 28s in its neighborhood;
-plan C diverges too early to appear (documented above).
+plan C diverges too early to appear (documented above). Floor check on
+the C family (pass-12): bound-26 finds nothing and bound-27 finds a
+SECOND distinct 27-move multiset — 27 is the proven floor within the
+window, and the wire-both-parcels economy has one sibling.
 
 ---
 

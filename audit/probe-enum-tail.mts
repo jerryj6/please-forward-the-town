@@ -175,6 +175,10 @@ const run = (name: string, level: PftLevel, traceName: string, slack: number) =>
     `distinctByLen=${JSON.stringify(byLenDistinct)}`);
 };
 
+// Optional overrides: TRACE=<const-name> and SLACK=<n> override the job's
+// trace seed and par slack, e.g. `TRACE=PFT10_TRACE_C SLACK=-1 npx tsx audit/probe-enum-tail.mts pft-10`.
+const OV_TRACE = process.env.TRACE;
+const OV_SLACK = process.env.SLACK !== undefined ? Number(process.env.SLACK) : undefined;
 const jobs: Record<string, [PftLevel, string, number]> = {
   'pft-08': [L08, 'PFT08_TRACE', 2],
   'pft-09': [L09, 'PFT09_TRACE', 2],
@@ -185,5 +189,5 @@ const jobs: Record<string, [PftLevel, string, number]> = {
 const only = process.argv[2];
 for (const [n, [lv, tn, sl]] of Object.entries(jobs)) {
   if (only && n !== only) continue;
-  run(n, lv, tn, sl);
+  run(n, lv, OV_TRACE ?? tn, OV_SLACK ?? sl);
 }

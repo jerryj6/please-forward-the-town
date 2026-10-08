@@ -23,6 +23,9 @@ const SLACK = Number(process.env.SLACK ?? 4); // explore plans up to par+SLACK
 const MAX_STATES = Number(process.env.MAX_STATES ?? 1_500_000);
 const MAX_TIME_MS = Number(process.env.MAX_MS ?? 120_000);
 const NOPRUNE = process.env.NOPRUNE === '1';
+// Optional forced prefix: JSON array of actions committed before enumeration
+// (ordering-denial / seeded-start probes), e.g. FIRST='[{"type":"pack","courierId":"courier-1","pieceId":"stair-1"}]'.
+const FIRST = process.env.FIRST ? (JSON.parse(process.env.FIRST) as PftAction[]) : [];
 
 const stateKey = (s: PftPlayState): string =>
   JSON.stringify({
@@ -167,6 +170,12 @@ const enumerate = (level: PftLevel) => {
   const bound = (level.par ?? 20) + SLACK;
   const engine = new PftEngine();
   engine.begin(level, 'enum');
+  const forced: PftAction[] = [];
+  for (const f of FIRST) {
+    const r = engine.commit(engine.propose('e', `forced-${forced.length}`, f));
+    if (!r.ok) console.log(`FIRST commit rejected: ${r.reason}`);
+    else forced.push(f);
+  }
   const visited = new Map<string, number>();
   const solutions: Found[] = [];
   const seqs = new Set<string>();
