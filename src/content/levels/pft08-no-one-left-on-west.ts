@@ -212,9 +212,10 @@ export const PFT08_CARD = {
     'Everyone rides the ferry out — it is the obvious way across. (One ' +
     'rider per ferry: the other three need a different crossing.)',
   insight:
-    'The Town Span is how four couriers end on the far shore of a ' +
-    'one-rider ferry — it must outlive every eastbound errand. The plank ' +
-    'bridge and the boat are cargo and can leave first.',
+    'Four couriers and a one-rider ferry: the span and the boat are the ' +
+    'only water crossings, and at least one must outlive the last ' +
+    'eastbound errand. The plank bridge is free to ship whenever the ' +
+    'west bank is done.',
   winningTraceSummary:
     '"Everyone across before the sale" (21 moves): Wren runs the Upland fetch ' +
     '(plank bridge, orchard path) and walks the sunstone over the Town Span to the ' +
@@ -243,9 +244,9 @@ export const PFT08_CARD = {
     'Work west to east: Upland and Market errands first, then the bridge ' +
       'carried over the span, then the ferry run — and only then the ' +
       'paperwork.',
-    'Keep the Town Span standing until everyone who needs the far shore ' +
-      'is there — it is the crossing for whoever does not ride. Everything ' +
-      'else can leave before it; it is the last piece to go.',
+    'The Town Span and the ferry are redundant crossings — EITHER may ' +
+      'leave first, but one must still stand until the last eastbound ' +
+      'courier is over. Whichever you keep until then is your closer.',
   ],
   coopNote:
     'Four distinct jobs, one shared spine: Wren owns the Upland fetch, Lark ' +
