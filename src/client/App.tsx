@@ -67,6 +67,7 @@ export default function App() {
       <main className="title-screen">
         <div className="title-card">
           <p className="overline">A valley logistics contract</p>
+          <img className="title-art" src="/assets/pft-cover.png" alt="Sunny valley map diorama" />
           <h1>Please Forward the Town</h1>
           <p className="pitch">Everything arrives — parcels, planks, and the postmistress herself.</p>
           <button type="button" className="primary" data-testid="play-solo" onClick={() => setScreen("select")}>
