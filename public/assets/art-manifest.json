@@ -1,0 +1,68 @@
+{
+ "game": "please-forward-the-town",
+ "generated": "2026-10-08",
+ "sheets": {
+  "sprites/courier": {
+   "sheet": "pft-courier-parcels.png",
+   "bg": [
+    252,
+    238,
+    212
+   ],
+   "count": 8,
+   "sprites": [
+    "pft-courier-parcels-00",
+    "pft-courier-parcels-01",
+    "pft-courier-parcels-02",
+    "pft-courier-parcels-03",
+    "pft-courier-parcels-04",
+    "pft-courier-parcels-05",
+    "pft-courier-parcels-06",
+    "pft-courier-parcels-07"
+   ]
+  },
+  "sprites/env": {
+   "sheet": "pft-env-kit.png",
+   "bg": [
+    251,
+    237,
+    210
+   ],
+   "count": 9,
+   "sprites": [
+    "pft-env-kit-00",
+    "pft-env-kit-01",
+    "pft-env-kit-02",
+    "pft-env-kit-03",
+    "pft-env-kit-04",
+    "pft-env-kit-05",
+    "pft-env-kit-06",
+    "pft-env-kit-07",
+    "pft-env-kit-08"
+   ]
+  },
+  "sprites/infra": {
+   "sheet": "pft-infrastructure.png",
+   "bg": [
+    250,
+    237,
+    210
+   ],
+   "count": 8,
+   "sprites": [
+    "pft-infrastructure-00",
+    "pft-infrastructure-01",
+    "pft-infrastructure-02",
+    "pft-infrastructure-03",
+    "pft-infrastructure-04",
+    "pft-infrastructure-05",
+    "pft-infrastructure-06",
+    "pft-infrastructure-07"
+   ]
+  }
+ },
+ "images": {
+  "pft-cover.png": "5c9cfd82e73452cd709c1133ce6021229962103cac4dc64783e0e3b141f3af70",
+  "pft-hero-anchor.png": "0795399753cc1e5a5be344ae4199d3740b4ab4f165875ff319b2ce30c757dca5"
+ }
+}

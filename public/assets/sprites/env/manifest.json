@@ -1,0 +1,149 @@
+{
+ "sheet": "pft-env-kit.png",
+ "size": [
+  1536,
+  1024
+ ],
+ "bg": [
+  251,
+  237,
+  210
+ ],
+ "sprites": [
+  {
+   "name": "pft-env-kit-00",
+   "file": "pft-env-kit-00.png",
+   "src_bbox": [
+    18,
+    90,
+    556,
+    482
+   ],
+   "size": [
+    538,
+    392
+   ],
+   "ink_px": 118219
+  },
+  {
+   "name": "pft-env-kit-01",
+   "file": "pft-env-kit-01.png",
+   "src_bbox": [
+    592,
+    64,
+    1043,
+    479
+   ],
+   "size": [
+    451,
+    415
+   ],
+   "ink_px": 100758
+  },
+  {
+   "name": "pft-env-kit-02",
+   "file": "pft-env-kit-02.png",
+   "src_bbox": [
+    1061,
+    56,
+    1525,
+    499
+   ],
+   "size": [
+    464,
+    443
+   ],
+   "ink_px": 100036
+  },
+  {
+   "name": "pft-env-kit-03",
+   "file": "pft-env-kit-03.png",
+   "src_bbox": [
+    17,
+    487,
+    519,
+    915
+   ],
+   "size": [
+    502,
+    428
+   ],
+   "ink_px": 129455
+  },
+  {
+   "name": "pft-env-kit-04",
+   "file": "pft-env-kit-04.png",
+   "src_bbox": [
+    529,
+    519,
+    860,
+    897
+   ],
+   "size": [
+    331,
+    378
+   ],
+   "ink_px": 38122
+  },
+  {
+   "name": "pft-env-kit-05",
+   "file": "pft-env-kit-05.png",
+   "src_bbox": [
+    875,
+    537,
+    1175,
+    872
+   ],
+   "size": [
+    300,
+    335
+   ],
+   "ink_px": 46324
+  },
+  {
+   "name": "pft-env-kit-06",
+   "file": "pft-env-kit-06.png",
+   "src_bbox": [
+    1182,
+    633,
+    1292,
+    823
+   ],
+   "size": [
+    110,
+    190
+   ],
+   "ink_px": 12222
+  },
+  {
+   "name": "pft-env-kit-07",
+   "file": "pft-env-kit-07.png",
+   "src_bbox": [
+    1314,
+    635,
+    1405,
+    812
+   ],
+   "size": [
+    91,
+    177
+   ],
+   "ink_px": 6089
+  },
+  {
+   "name": "pft-env-kit-08",
+   "file": "pft-env-kit-08.png",
+   "src_bbox": [
+    1425,
+    635,
+    1520,
+    808
+   ],
+   "size": [
+    95,
+    173
+   ],
+   "ink_px": 5970
+  }
+ ]
+}

@@ -1,0 +1,134 @@
+{
+ "sheet": "pft-courier-parcels.png",
+ "size": [
+  1774,
+  887
+ ],
+ "bg": [
+  252,
+  238,
+  212
+ ],
+ "sprites": [
+  {
+   "name": "pft-courier-parcels-00",
+   "file": "pft-courier-parcels-00.png",
+   "src_bbox": [
+    101,
+    101,
+    332,
+    472
+   ],
+   "size": [
+    231,
+    371
+   ],
+   "ink_px": 46291
+  },
+  {
+   "name": "pft-courier-parcels-01",
+   "file": "pft-courier-parcels-01.png",
+   "src_bbox": [
+    476,
+    107,
+    731,
+    460
+   ],
+   "size": [
+    255,
+    353
+   ],
+   "ink_px": 48254
+  },
+  {
+   "name": "pft-courier-parcels-02",
+   "file": "pft-courier-parcels-02.png",
+   "src_bbox": [
+    877,
+    24,
+    1146,
+    472
+   ],
+   "size": [
+    269,
+    448
+   ],
+   "ink_px": 66261
+  },
+  {
+   "name": "pft-courier-parcels-03",
+   "file": "pft-courier-parcels-03.png",
+   "src_bbox": [
+    1298,
+    97,
+    1639,
+    469
+   ],
+   "size": [
+    341,
+    372
+   ],
+   "ink_px": 73639
+  },
+  {
+   "name": "pft-courier-parcels-04",
+   "file": "pft-courier-parcels-04.png",
+   "src_bbox": [
+    85,
+    541,
+    403,
+    815
+   ],
+   "size": [
+    318,
+    274
+   ],
+   "ink_px": 50342
+  },
+  {
+   "name": "pft-courier-parcels-05",
+   "file": "pft-courier-parcels-05.png",
+   "src_bbox": [
+    457,
+    511,
+    941,
+    814
+   ],
+   "size": [
+    484,
+    303
+   ],
+   "ink_px": 92667
+  },
+  {
+   "name": "pft-courier-parcels-06",
+   "file": "pft-courier-parcels-06.png",
+   "src_bbox": [
+    1005,
+    498,
+    1418,
+    831
+   ],
+   "size": [
+    413,
+    333
+   ],
+   "ink_px": 84770
+  },
+  {
+   "name": "pft-courier-parcels-07",
+   "file": "pft-courier-parcels-07.png",
+   "src_bbox": [
+    1501,
+    489,
+    1689,
+    815
+   ],
+   "size": [
+    188,
+    326
+   ],
+   "ink_px": 43477
+  }
+ ]
+}

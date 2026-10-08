@@ -1,0 +1,134 @@
+{
+ "sheet": "pft-infrastructure.png",
+ "size": [
+  1536,
+  1024
+ ],
+ "bg": [
+  250,
+  237,
+  210
+ ],
+ "sprites": [
+  {
+   "name": "pft-infrastructure-00",
+   "file": "pft-infrastructure-00.png",
+   "src_bbox": [
+    111,
+    29,
+    751,
+    349
+   ],
+   "size": [
+    640,
+    320
+   ],
+   "ink_px": 116474
+  },
+  {
+   "name": "pft-infrastructure-01",
+   "file": "pft-infrastructure-01.png",
+   "src_bbox": [
+    850,
+    30,
+    1364,
+    330
+   ],
+   "size": [
+    514,
+    300
+   ],
+   "ink_px": 92706
+  },
+  {
+   "name": "pft-infrastructure-02",
+   "file": "pft-infrastructure-02.png",
+   "src_bbox": [
+    65,
+    316,
+    722,
+    674
+   ],
+   "size": [
+    657,
+    358
+   ],
+   "ink_px": 111324
+  },
+  {
+   "name": "pft-infrastructure-03",
+   "file": "pft-infrastructure-03.png",
+   "src_bbox": [
+    846,
+    326,
+    1482,
+    676
+   ],
+   "size": [
+    636,
+    350
+   ],
+   "ink_px": 105421
+  },
+  {
+   "name": "pft-infrastructure-04",
+   "file": "pft-infrastructure-04.png",
+   "src_bbox": [
+    29,
+    677,
+    388,
+    951
+   ],
+   "size": [
+    359,
+    274
+   ],
+   "ink_px": 57724
+  },
+  {
+   "name": "pft-infrastructure-05",
+   "file": "pft-infrastructure-05.png",
+   "src_bbox": [
+    434,
+    704,
+    728,
+    964
+   ],
+   "size": [
+    294,
+    260
+   ],
+   "ink_px": 45548
+  },
+  {
+   "name": "pft-infrastructure-06",
+   "file": "pft-infrastructure-06.png",
+   "src_bbox": [
+    792,
+    662,
+    1212,
+    985
+   ],
+   "size": [
+    420,
+    323
+   ],
+   "ink_px": 70942
+  },
+  {
+   "name": "pft-infrastructure-07",
+   "file": "pft-infrastructure-07.png",
+   "src_bbox": [
+    1257,
+    654,
+    1489,
+    969
+   ],
+   "size": [
+    232,
+    315
+   ],
+   "ink_px": 29816
+  }
+ ]
+}
