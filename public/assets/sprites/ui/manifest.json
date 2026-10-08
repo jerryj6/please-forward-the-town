@@ -1,0 +1,119 @@
+{
+ "sheet": "pft-ui-kit.png",
+ "size": [
+  512,
+  1024
+ ],
+ "bg": [
+  254,
+  253,
+  254
+ ],
+ "sprites": [
+  {
+   "name": "pft-ui-kit-00",
+   "file": "pft-ui-kit-00.png",
+   "src_bbox": [
+    18,
+    61,
+    497,
+    418
+   ],
+   "size": [
+    479,
+    357
+   ],
+   "ink_px": 156619
+  },
+  {
+   "name": "pft-ui-kit-01",
+   "file": "pft-ui-kit-01.png",
+   "src_bbox": [
+    19,
+    440,
+    491,
+    589
+   ],
+   "size": [
+    472,
+    149
+   ],
+   "ink_px": 22193
+  },
+  {
+   "name": "pft-ui-kit-02",
+   "file": "pft-ui-kit-02.png",
+   "src_bbox": [
+    79,
+    467,
+    174,
+    563
+   ],
+   "size": [
+    95,
+    96
+   ],
+   "ink_px": 5228
+  },
+  {
+   "name": "pft-ui-kit-03",
+   "file": "pft-ui-kit-03.png",
+   "src_bbox": [
+    197,
+    503,
+    439,
+    523
+   ],
+   "size": [
+    242,
+    20
+   ],
+   "ink_px": 984
+  },
+  {
+   "name": "pft-ui-kit-04",
+   "file": "pft-ui-kit-04.png",
+   "src_bbox": [
+    0,
+    752,
+    480,
+    961
+   ],
+   "size": [
+    480,
+    209
+   ],
+   "ink_px": 59912
+  },
+  {
+   "name": "pft-ui-kit-05",
+   "file": "pft-ui-kit-05.png",
+   "src_bbox": [
+    18,
+    616,
+    490,
+    731
+   ],
+   "size": [
+    472,
+    115
+   ],
+   "ink_px": 9419
+  },
+  {
+   "name": "pft-ui-kit-06",
+   "file": "pft-ui-kit-06.png",
+   "src_bbox": [
+    47,
+    641,
+    94,
+    705
+   ],
+   "size": [
+    47,
+    64
+   ],
+   "ink_px": 1292
+  }
+ ]
+}
