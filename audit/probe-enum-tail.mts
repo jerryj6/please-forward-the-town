@@ -124,6 +124,7 @@ const run = (name: string, level: PftLevel, traceName: string, slack: number) =>
   const sols: number[] = [];
   const seqs = new Set<string>();
   const msets = new Set<string>();
+  const exemplars = new Map<string, PftAction[]>();
   let explored = 0, capped = false;
   const t0 = Date.now();
   const rec = (d: number, plan: PftAction[]): void => {
@@ -147,7 +148,9 @@ const run = (name: string, level: PftLevel, traceName: string, slack: number) =>
         const seq = JSON.stringify([...plan, a]);
         if (!seqs.has(seq)) {
           seqs.add(seq); sols.push(d + 1);
-          msets.add(JSON.stringify([...plan, a].map(x => JSON.stringify(x)).sort()));
+          const msig = JSON.stringify([...plan, a].map(x => JSON.stringify(x)).sort());
+          msets.add(msig);
+          if (!exemplars.has(msig)) exemplars.set(msig, [...plan, a]);
         }
         engine.undo(); continue;
       }
@@ -160,6 +163,11 @@ const run = (name: string, level: PftLevel, traceName: string, slack: number) =>
     }
   };
   rec(cut, trace.slice(0, cut));
+  if (process.env.DUMP === '1') {
+    for (const [msig, plan] of exemplars) {
+      console.log(`EXEMPLAR len=${plan.length} mset=${msig.slice(0, 80)}`);
+    }
+  }
   const byLen = new Map<number, number>();
   for (const d of sols) byLen.set(d, (byLen.get(d) ?? 0) + 1);
   const byLenSets = new Map<number, Set<string>>();
