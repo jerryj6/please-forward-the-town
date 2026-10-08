@@ -16,6 +16,7 @@ import LedgerView, { type LedgerEntry } from "./TimelineView";
 import HintLadder from "./HintLadder";
 import { PFT_HINTS } from "./hints";
 import { actionSlug, describeAction, describeOrder, nameOf } from "./describe";
+import { RoomClient } from "./net/roomClient.js";
 
 const LEVELS: { level: PftLevel; chapter: string; blurb: string }[] = [
   {
@@ -26,8 +27,32 @@ const LEVELS: { level: PftLevel; chapter: string; blurb: string }[] = [
 ];
 
 export default function App() {
-  const [screen, setScreen] = useState<"title" | "select" | "play">("title");
+  const [screen, setScreen] = useState<"title" | "select" | "play" | "lobby">("title");
   const [level, setLevel] = useState<PftLevel>(PFT01_LAST_CROSSING);
+  const net = useRef<RoomClient | null>(null);
+  const netState = useRef<{ setGs?: (s: PftPlayState) => void }>({});
+  const [roomCode, setRoomCode] = useState<string | null>(null);
+  const [netErr, setNetErr] = useState<string | null>(null);
+  const foldRef = useRef<(p: unknown) => void>(() => {});
+
+  const goOnline = async (mode: "create" | "join", code?: string) => {
+    try {
+      const client = new RoomClient({
+        onJoin: (_a, rc) => setRoomCode(rc),
+        onState: (rs) => {
+          const r = rs as { levelId: string; state: PftPlayState };
+          netState.current.setGs?.(r.state);
+        },
+        onCommand: (p) => foldRef.current(p),
+        onError: (_c, msg) => setNetErr(msg),
+      });
+      await client.connect();
+      net.current = client;
+      if (mode === "create") client.createRoom("pft", level.levelId.toUpperCase());
+      else client.joinRoom(code ?? "");
+      setScreen("play");
+    } catch { setNetErr("Could not reach the room server."); }
+  };
 
   if (screen === "title") {
     return (
@@ -39,7 +64,30 @@ export default function App() {
           <button type="button" className="primary" data-testid="play-solo" onClick={() => setScreen("select")}>
             Play solo
           </button>
+          <button type="button" className="ghost" data-testid="play-coop" onClick={() => setScreen("lobby")}>
+            Crew up
+          </button>
+          {netErr && <p className="fail">{netErr}</p>}
         </div>
+      </main>
+    );
+  }
+
+  if (screen === "lobby") {
+    let codeInput = "";
+    return (
+      <main className="select-screen">
+        <h1>Contract a convoy</h1>
+        <p>Share a room code; every committed order lands on every runner's ledger.</p>
+        <div className="actions">
+          <button type="button" className="primary" onClick={() => void goOnline("create")}>
+            Host a room ({level.levelId.toUpperCase()})
+          </button>
+          <input placeholder="Room code" onChange={(e) => (codeInput = e.target.value)} />
+          <button type="button" onClick={() => void goOnline("join", codeInput)}>Join</button>
+        </div>
+        {netErr && <p className="fail">{netErr}</p>}
+        <button type="button" className="ghost" onClick={() => setScreen("title")}>Back</button>
       </main>
     );
   }
@@ -74,12 +122,36 @@ export default function App() {
     );
   }
 
-  return <PlayScreen key={level.levelId} level={level} onExit={() => setScreen("select")} />;
+  return (
+    <PlayScreen
+      key={`${level.levelId}-${roomCode ?? "solo"}`}
+      level={level}
+      onExit={() => setScreen("select")}
+      net={net}
+      netState={netState}
+      foldRef={foldRef}
+      roomCode={roomCode}
+    />
+  );
 }
 
 // ---------------------------------------------------------------------------
 
-function PlayScreen({ level, onExit }: { level: PftLevel; onExit: () => void }) {
+function PlayScreen({
+  level,
+  onExit,
+  net,
+  netState,
+  foldRef,
+  roomCode,
+}: {
+  level: PftLevel;
+  onExit: () => void;
+  net: React.MutableRefObject<RoomClient | null>;
+  netState: React.MutableRefObject<{ setGs?: (s: PftPlayState) => void }>;
+  foldRef: React.MutableRefObject<(p: unknown) => void>;
+  roomCode: string | null;
+}) {
   const engineRef = useRef<PftEngine | null>(null);
   if (!engineRef.current) {
     const e = new PftEngine();
@@ -103,6 +175,10 @@ function PlayScreen({ level, onExit }: { level: PftLevel; onExit: () => void }) 
   const statuses = useMemo(() => analyzeOrderStatuses(level, gs), [level, gs]);
 
   function commit(action: PftAction) {
+    if (net.current) {
+      net.current.command(action);
+      return;
+    }
     const proposal = engine.propose("solo", `ui-${++seq.current}`, action);
     const res = engine.commit(proposal);
     if (!res.ok) {
@@ -113,7 +189,7 @@ function PlayScreen({ level, onExit }: { level: PftLevel; onExit: () => void }) 
     setGs(engine.currentState);
     setLedger((l) => [
       ...l,
-      { commandId: proposal.commandId, action, events: (res.events ?? []) as GameEvent[] },
+      { commandId: proposal.actionId, action, events: (res.events ?? []) as GameEvent[] },
     ]);
   }
 
@@ -124,6 +200,18 @@ function PlayScreen({ level, onExit }: { level: PftLevel; onExit: () => void }) 
     setGs(engine.currentState);
     setLedger((l) => l.slice(0, -1));
   }
+
+  // Co-op: server broadcasts accepted command payloads; fold them through
+  // the engine locally (deterministic ⇒ identical state on every client).
+  netState.current.setGs = setGs;
+  foldRef.current = (p: unknown) => {
+    const res = engine.applyAction(level, gs, p as PftAction);
+    setGs(res.state);
+    setLedger((l) => [
+      ...l,
+      { commandId: `net-${++seq.current}`, action: p as PftAction, events: res.events as GameEvent[] },
+    ]);
+  };
 
   function restart() {
     engine.begin(level);
@@ -136,7 +224,7 @@ function PlayScreen({ level, onExit }: { level: PftLevel; onExit: () => void }) 
 
   function accept() {
     const res = engine.acceptResult();
-    setVerdict({ accepted: res.accepted, reason: res.reason, finalHash: res.finalHash });
+    setVerdict({ accepted: res.accepted, ...(res.reason !== undefined ? { reason: res.reason } : {}), finalHash: res.finalHash });
   }
 
   const moves = gs.beat;
@@ -148,13 +236,14 @@ function PlayScreen({ level, onExit }: { level: PftLevel; onExit: () => void }) 
         <div>
           <span className="level-id">{level.levelId.toUpperCase()}</span>
           <h1>{level.title}</h1>
+          {roomCode && <span className="badge">Convoy {roomCode}</span>}
         </div>
         <div className="topbar-actions">
           <span className={`move-counter ${overPar ? "over" : ""}`} data-testid="move-counter">
             {moves} moves{level.par !== undefined ? ` · par ${level.par}` : ""}
             {overPar ? ` (+${moves - (level.par ?? 0)} late)` : ""}
           </span>
-          <button type="button" className="ghost" data-testid="undo" onClick={undo} disabled={ledger.length === 0}>
+          <button type="button" className="ghost" data-testid="undo" onClick={undo} disabled={net.current !== null || ledger.length === 0}>
             Undo
           </button>
           <button type="button" className="ghost" data-testid="restart" onClick={restart}>
