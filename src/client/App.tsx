@@ -17,6 +17,7 @@ import HintLadder from "./HintLadder";
 import { PFT_HINTS } from "./hints";
 import { actionSlug, describeAction, describeOrder, nameOf } from "./describe";
 import { RoomClient } from "./net/roomClient.js";
+import { pftAudio } from "./audio.js";
 
 const BLURBS: Record<string, { chapter: string; blurb: string }> = {
   "PFT-01": {
@@ -169,6 +170,7 @@ function PlayScreen({
 
   // Mirror the session's state into React state; commit() swaps the object.
   const [gs, setGs] = useState<PftPlayState>(() => engine.currentState);
+  const [muted, setMuted] = useState(false);
   const [ledger, setLedger] = useState<LedgerEntry[]>([]);
   const [selected, setSelected] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
@@ -180,6 +182,24 @@ function PlayScreen({
     [engine, level, gs, verdict],
   );
   const statuses = useMemo(() => analyzeOrderStatuses(level, gs), [level, gs]);
+
+  function cueFor(action: PftAction, events: GameEvent[]) {
+    const t = (action as { type?: string }).type ?? "";
+    if (t === "pick_up") pftAudio.play("parcel.pickup");
+    else if (t === "drop") pftAudio.play("parcel.drop");
+    else if (t === "pack") pftAudio.play("parcel.pack");
+    else if (t === "deploy") pftAudio.play("piece.deploy");
+    else if (t === "send") pftAudio.play("mail.send");
+    else if (t === "ride_ferry") pftAudio.play("ferry.ride");
+    else if (t === "load_ferry" || t === "unload_ferry") pftAudio.play("ferry.dock");
+    else if (t === "hand_over_ferry") pftAudio.play("ferry.horn");
+    else pftAudio.play("ui.tick");
+    for (const e of events) {
+      if (e.type === "order.delivered" || e.type === "piece.delivered") pftAudio.play("piece.deliver");
+      else if (e.type === "order.stranded") pftAudio.play("order.strand");
+      else if (e.type === "contract.completed") pftAudio.play("town.complete");
+    }
+  }
 
   function commit(action: PftAction) {
     if (net.current) {
@@ -194,6 +214,7 @@ function PlayScreen({
     }
     setToast(null);
     setGs(engine.currentState);
+    cueFor(action, res.events ?? []);
     setLedger((l) => [
       ...l,
       { commandId: proposal.actionId, action, events: (res.events ?? []) as GameEvent[] },
@@ -214,6 +235,7 @@ function PlayScreen({
   foldRef.current = (p: unknown) => {
     const res = engine.applyAction(level, gs, p as PftAction);
     setGs(res.state);
+    cueFor(p as PftAction, res.events);
     setLedger((l) => [
       ...l,
       { commandId: `net-${++seq.current}`, action: p as PftAction, events: res.events as GameEvent[] },
@@ -231,6 +253,7 @@ function PlayScreen({
 
   function accept() {
     const res = engine.acceptResult();
+    pftAudio.play(res.accepted ? "town.complete" : "order.strand");
     setVerdict({ accepted: res.accepted, ...(res.reason !== undefined ? { reason: res.reason } : {}), finalHash: res.finalHash });
   }
 
@@ -255,6 +278,9 @@ function PlayScreen({
           </button>
           <button type="button" className="ghost" data-testid="restart" onClick={restart}>
             Restart
+          </button>
+          <button type="button" className="ghost" onClick={() => { const m = !muted; pftAudio.setMuted(m); setMuted(m); }}>
+            {muted ? "Sound off" : "Sound on"}
           </button>
           <button type="button" className="ghost" onClick={onExit}>
             Contracts
