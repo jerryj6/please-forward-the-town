@@ -25,6 +25,7 @@ const MAX_TIME_MS = Number(process.env.MAX_MS ?? 120_000);
 const NOPRUNE = process.env.NOPRUNE === '1';
 // Optional forced prefix: JSON array of actions committed before enumeration
 // (ordering-denial / seeded-start probes), e.g. FIRST='[{"type":"pack","courierId":"courier-1","pieceId":"stair-1"}]'.
+const DENY = new Set((process.env.DENY ?? '').split(',').filter(Boolean));
 const FIRST = process.env.FIRST ? (JSON.parse(process.env.FIRST) as PftAction[]) : [];
 
 const stateKey = (s: PftPlayState): string =>
@@ -178,6 +179,7 @@ const enumerate = (level: PftLevel) => {
   }
   const visited = new Map<string, number>();
   const solutions: Found[] = [];
+  const msets = new Set<string>();
   const seqs = new Set<string>();
   let explored = 0,
     pruned = 0,
@@ -212,11 +214,13 @@ const enumerate = (level: PftLevel) => {
           (a) => a.type === 'deploy' && 'siteId' in a && a.siteId === 'socket-middle-loft',
         );
         solutions.push({ len: plan.length, seq, counts, hasMidDeploy });
+        msets.add(JSON.stringify(plan.map(x => JSON.stringify(x)).sort()));
       }
       return; // dead end past completion anyway
     }
     if (plan.length >= bound) return;
     for (const a of candidates(level, s).sort((x, y) => order(x) - order(y))) {
+      if (DENY.has(a.type)) continue;
       const res = engine.commit(engine.propose('e', `e-${explored}`, a));
       if (!res.ok) continue;
       if (a.type === 'deploy' && 'siteId' in a && a.siteId === 'socket-middle-loft')
@@ -231,6 +235,7 @@ const enumerate = (level: PftLevel) => {
           const counts: Record<string, number> = {};
           for (const x of [...plan, a]) counts[x.type] = (counts[x.type] ?? 0) + 1;
           solutions.push({ len: plan.length + 1, seq, counts });
+          msets.add(JSON.stringify([...plan, a].map(x => JSON.stringify(x)).sort()));
         }
         engine.undo();
         continue;
@@ -252,7 +257,7 @@ const enumerate = (level: PftLevel) => {
     }
   };
   rec([]);
-  return { bound, explored, pruned, capped, solutions, ms: Date.now() - t0, sawMidDeploy: sawMiddleHoistDeploy };
+  return { bound, explored, pruned, capped, solutions, distinctMultisets: msets.size, ms: Date.now() - t0, sawMidDeploy: sawMiddleHoistDeploy };
 };
 
 const levels: [string, PftLevel][] = [
@@ -279,7 +284,7 @@ for (const [name, level] of levels) {
   const minLen = Math.min(...r.solutions.map((s) => s.len), Infinity);
   console.log(
     `${name}: bound=${r.bound} explored=${r.explored} pruned=${r.pruned} ` +
-      `capped=${r.capped} ms=${r.ms} solutions=${r.solutions.length} ` +
+      `capped=${r.capped} ms=${r.ms} solutions=${r.solutions.length} distinctMultisets=${(r as { distinctMultisets?: number }).distinctMultisets ?? '?'} ` +
       `sawMidDeploy=${(r as { sawMidDeploy?: boolean }).sawMidDeploy} ` +
       `byLen=${JSON.stringify(Object.fromEntries([...byLen].sort((a, b) => a[0] - b[0])))} ` +
       `minLen=${minLen}`,
