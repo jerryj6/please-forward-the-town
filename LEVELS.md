@@ -527,7 +527,11 @@ A, bound 30: 13 completions → 11 distinct multisets — 2 at 28, 2 at
 plan C diverges too early to appear (documented above). Floor check on
 the C family (pass-12): bound-26 finds nothing and bound-27 finds a
 SECOND distinct 27-move multiset — 27 is the proven floor within the
-window, and the wire-both-parcels economy has one sibling.
+window, and the wire-both-parcels economy has one sibling. The sibling
+swaps the closing errand: SPARROW packs and sells the bridge (the east
+receiver doubles as the closer — ride middle, pack, sail east, deliver,
+sail home) while Wren's granite leg simply ends east with no return
+sail. Same economy, different billing.
 
 ---
 

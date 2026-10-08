@@ -201,6 +201,8 @@ svg.scene { width: 100%; height: auto; border-radius: 14px; border: 2px solid va
 }
 .verdict-card h2 { font-size: 1.9rem; }
 .verdict-card .row { justify-content: center; margin-top: 1.2rem; }
+.verdict-overlay.superseded .verdict-card { border-color: #b0722c; opacity: 0.94; }
+.verdict-overlay.superseded .overline { color: #e0a050; }
 
 @media (max-width: 980px) {
   .play-layout { grid-template-columns: 1fr; }

@@ -180,6 +180,9 @@ function PlayScreen({
   const [selected, setSelected] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [verdict, setVerdict] = useState<{ accepted: boolean; reason?: string; finalHash: string } | null>(null);
+  // Superseded-verdict marking: any accepted command folding onto the board
+  // after the verdict was accepted flags the verdict stale (shared policy).
+  const [superseded, setSuperseded] = useState(false);
   const seq = useRef(0);
 
   const legal: PftAction[] = useMemo(
@@ -218,6 +221,7 @@ function PlayScreen({
       return;
     }
     setToast(null);
+    if (verdict?.accepted) setSuperseded(true);
     setGs(engine.currentState);
     cueFor(action, res.events ?? []);
     setLedger((l) => [
@@ -230,6 +234,7 @@ function PlayScreen({
     const res = engine.undo();
     if (!res.ok) return;
     setVerdict(null);
+    setSuperseded(false);
     setGs(engine.currentState);
     setLedger((l) => l.slice(0, -1));
   }
@@ -239,6 +244,7 @@ function PlayScreen({
   netState.current.setGs = setGs;
   foldRef.current = (p: unknown) => {
     const res = engine.applyAction(roomLevel, gs, p as PftAction);
+    if (verdict?.accepted) setSuperseded(true);
     setGs(res.state);
     cueFor(p as PftAction, res.events);
     setLedger((l) => [
@@ -252,12 +258,14 @@ function PlayScreen({
     setGs(engine.currentState);
     setLedger([]);
     setVerdict(null);
+    setSuperseded(false);
     setToast(null);
     setSelected(null);
   }
 
   function accept() {
     const res = engine.acceptResult();
+    setSuperseded(false);
     pftAudio.play(res.accepted ? "town.complete" : "order.strand");
     setVerdict({ accepted: res.accepted, ...(res.reason !== undefined ? { reason: res.reason } : {}), finalHash: res.finalHash });
   }
@@ -334,13 +342,17 @@ function PlayScreen({
       </div>
 
       {verdict?.accepted ? (
-        <div className="verdict-overlay" data-testid="accepted-banner">
+        <div
+          className={`verdict-overlay${superseded ? " superseded" : ""}`}
+          data-testid={superseded ? "superseded-banner" : "accepted-banner"}
+        >
           <div className="verdict-card">
-            <p className="overline">Contract complete</p>
-            <h2>Forwarded on schedule</h2>
+            <p className="overline">{superseded ? "Verdict superseded" : "Contract complete"}</p>
+            <h2>{superseded ? "Board changed since close" : "Forwarded on schedule"}</h2>
             <p>
               Every order is fulfilled in {moves} moves{roomLevel.par !== undefined ? ` (par ${roomLevel.par}${overPar ? `, ${moves - roomLevel.par} late` : ""})` : ""}. The
               town will remember the route. Final hash <code>{verdict.finalHash.slice(0, 12)}…</code>
+              {superseded ? " The ledger below moved after this close — the recorded verdict no longer matches the live board." : ""}
             </p>
             <div className="row">
               <button type="button" className="ghost" onClick={restart}>
