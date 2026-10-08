@@ -208,3 +208,5 @@ svg.scene { width: 100%; height: auto; border-radius: 14px; border: 2px solid va
 }
 
 .title-art{max-width:340px;width:70%;border-radius:12px;border:1px solid #d8c9a3;margin:0 auto 18px;display:block}
+
+.side-pane section, .ledger { background-image: url(/assets/pft-material.png); background-size: 460px; background-blend-mode: soft-light; }
