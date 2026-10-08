@@ -55,6 +55,10 @@ dock — divergent exits make *when* the bridge is packed the whole question.
 list. The live question is whether the bridge is free to go — nobody still
 needs the West bank once Lark is home.
 
+**Solution space (bounded enumeration, automated playtest).** Complete DFS to
+par+4 (bound 20): 17 plans — the 16-move plan is the UNIQUE optimum; the rest
+are scheduling variants at 17–20.
+
 ---
 
 ## PFT-03 — A Bridge With Two Addresses (`pft-03`)
@@ -98,6 +102,10 @@ pack-at-Middle off West, deploy-from-Middle onto North, pack-at-Middle again.
 **Coop note.** Solo contract; in a shared session split the planning — one
 player sequences the West fetch, another proves the North redeploy before the
 pack is committed.
+
+**Solution space (bounded enumeration).** Complete DFS to par+4 (bound 21):
+8 plans — the 17-move plan is the unique optimum; no 18-move plan exists
+(the length ladder has a genuine gap between 17 and 19).
 
 ---
 
@@ -153,6 +161,11 @@ pass).**
 needs the stair again); Wren owns the water and the packing list. The
 conversation before the stair leaves: "who is still aloft?"
 
+**Solution space (bounded enumeration).** Complete DFS to par+2 (bound 20):
+9 plans — two optimal 18-move plans plus variants including the hoist
+strategy (verified trace B); par+4 was intractable at the 3M-state cap
+(bound documented in audit/PFT-AUDIT-PASS4.md).
+
 ---
 
 ## PFT-05 — Return to Sender (`pft-05`)
@@ -203,6 +216,10 @@ their work is done.
 a staged parcel on a dock, and neither courier ever touches the other's
 route.
 
+**Solution space (bounded enumeration).** Complete DFS to par+4 (bound 17):
+18 plans — THREE optimal 13-move plans, including a real role-swap: the
+bridge can be packed and sold by either courier, not just Lark.
+
 ---
 
 ## PFT-06 — The Ferry's Last Fare (`pft-06`)
@@ -249,6 +266,10 @@ Lark exits by land at the West gate; Wren sails the last fare and stays.
 **Coop note.** Settle before anyone packs: what still needs the boat? Split
 the freight; whoever signs the boat over is the last one East.
 
+**Solution space (bounded enumeration).** Complete DFS to par+4 (bound 21):
+20 plans — two optimal 17-move plans (direct carries vs dock-staged
+freight), the rest are scheduling variants to 21.
+
 ---
 
 ## PFT-07 — The Moving Address (`pft-07`)
@@ -293,6 +314,9 @@ sign a last time, and files it at the registry.
 **Coop note.** Lark owns the sign; Wren owns the cargo. The one rule: nobody
 lifts the sign at the new post until the tea is inside — the address
 disappears under anyone still standing on it.
+
+**Solution space (bounded enumeration).** Complete DFS to par+4 (bound 24):
+16 plans — two optimal 20-move plans, the rest scheduling variants to 24.
 
 ---
 
@@ -464,6 +488,17 @@ that the crossing itself becomes cargo.
 closer who carries the bridge sale (Wren). In plan A the ferryman is the
 bottleneck role; in plan B the span-setter is — split the jobs before the
 first pack.
+
+**Documented alternate — "Both parcels down the wire" (27 moves).** A
+third verified plan discovered in pass-3 automated playtest — and it
+runs ONE MOVE UNDER the 28-move reference par: Finch mails the cider at
+the North post too, Sparrow receives both parcels on the east quay in a
+single round-trip, and Wren ferries only the granite and the bridge
+sale (2 sends, 5 rides, 0 deploys). Legal under the level's `open`
+solution policy; verified as `PFT10_TRACE_C` in
+tests/unit/pft08-10.test.ts. Curated here so players who find it meet a
+documented plan, not an accident — and so par-beating schedules are
+expected.
 
 ---
 
