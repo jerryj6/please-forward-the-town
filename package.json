@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Please Forward the Town \u2014 a cooperative logistics puzzle where the infrastructure is cargo. Every address must forward.",
+  "description": "Please Forward the Town — a cooperative logistics puzzle where the infrastructure is cargo. Every address must forward.",
   "engines": {
     "node": ">=20"
   },
@@ -26,7 +26,8 @@
     "audit:release": "tsx scripts/audit-release.ts",
     "verify:production": "tsx scripts/verify-production.ts",
     "verify:all": "tsx scripts/verify-all.ts",
-    "start": "node dist-server/server/main.js"
+    "start": "node dist-server/server/main.js",
+    "check:content": "tsx scripts/card-vs-engine.mts"
   },
   "dependencies": {
     "pixi.js": "^8.5.2",

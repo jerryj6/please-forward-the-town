@@ -259,8 +259,10 @@ export const PFT09_CARD = {
     'to the museum, and closes the East exit.',
   wrongApproaches: [
     'The apparent cycle: pack the plank bridge while the loft runner is still ' +
-      'west-side and the mail is dead — the tea and the runner\'s exit strand ' +
-      'together (redeploy while carried, undo once it is at the museum).',
+      'west-side and the mail is dead — the staircase, mailbox, and runner\'s ' +
+      'exit strand together (redeploy while carried, undo once filed); a ' +
+      'carried parcel still reads reachable through the water, so the tea ' +
+      'never reports stranded — count the courier, not the cargo.',
     'Occupied structure: the staircase cannot be packed while a courier or the ' +
       'tapestry is still on the loft (PFT-006).',
     'Dead link: send after the mailbox is packed — "link inactive".',
