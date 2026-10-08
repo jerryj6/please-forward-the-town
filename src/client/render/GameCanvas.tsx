@@ -15,6 +15,7 @@ type TextureKey = keyof typeof TEXTURES;
 const COLORS: Record<string, number> = { red: 0xe26955, blue: 0x4f86c6, gold: 0xe8b04a, green: 0x5fae73 };
 const WATER = 0x3f8e9b;
 const SPLASH_TICKS = 40;
+const ACTION_WORDS: Record<string, string> = { deploy: "Lay plank", deliver: "Deliver", drop: "Put down", pickup: "Pick up", lift: "Lift plank" };
 
 export interface PlayerDisplay {
   name: string;
@@ -489,6 +490,34 @@ export function GameCanvas({ level, world, players }: Props): JSX.Element {
               }
             },
           });
+        }
+
+        const solo = (current?.players.length ?? 0) === 1;
+        for (const player of current?.players ?? []) {
+          const plan = player.action;
+          if (!plan || player.state !== "normal") continue;
+          const p = cam.project(plan.x, plan.y);
+          const inset = T * 0.04;
+          const arm = T * 0.22;
+          const breathe = 0.6 + 0.4 * Math.sin(time / 160);
+          const corners: Array<[number, number, number, number]> = [
+            [p.x + inset, p.y + inset, 1, 1],
+            [p.x + T - inset, p.y + inset, -1, 1],
+            [p.x + inset, p.y + D - inset, 1, -1],
+            [p.x + T - inset, p.y + D - inset, -1, -1],
+          ];
+          for (const [cx, cy, sx, sy] of corners) {
+            ground.moveTo(cx + sx * arm, cy).lineTo(cx, cy).lineTo(cx, cy + sy * arm * (D / T));
+          }
+          ground.stroke({ color: 0xffffff, width: 3, alpha: breathe });
+          if (solo) {
+            const words = ACTION_WORDS[plan.verb];
+            const tag = label(`prompt-${player.id}`, `Space · ${words}`, Math.max(11, T * 0.16), 0xffffff, 0x2a3f3a);
+            if (tag.text !== `Space · ${words}`) tag.text = `Space · ${words}`;
+            const me = cam.project(player.x / 1000, player.y / 1000);
+            tag.position.set(me.x, me.y - T * (player.carrying ? 1.75 : 1.3));
+            queue.push({ y: 1e6, draw: () => actors.addChild(tag) });
+          }
         }
 
         queue.sort((a, b) => a.y - b.y);
