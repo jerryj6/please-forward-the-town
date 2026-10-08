@@ -38,7 +38,7 @@ export default function App() {
   const [screen, setScreen] = useState<"title" | "select" | "play" | "lobby">("title");
   const [level, setLevel] = useState<PftLevel>(LEVEL_DEFS[0].def);
   const net = useRef<RoomClient | null>(null);
-  const netState = useRef<{ setGs?: (s: PftPlayState) => void }>({});
+  const netState = useRef<{ setGs?: (s: PftPlayState) => void; levelId?: string }>({});
   const [roomCode, setRoomCode] = useState<string | null>(null);
   const [netErr, setNetErr] = useState<string | null>(null);
   const foldRef = useRef<(p: unknown) => void>(() => {});
@@ -49,6 +49,7 @@ export default function App() {
         onJoin: (_a, rc) => setRoomCode(rc),
         onState: (rs) => {
           const r = rs as { levelId: string; state: PftPlayState };
+          netState.current.levelId = r.levelId;
           netState.current.setGs?.(r.state);
         },
         onCommand: (p) => foldRef.current(p),
@@ -157,14 +158,17 @@ function PlayScreen({
   level: PftLevel;
   onExit: () => void;
   net: React.MutableRefObject<RoomClient | null>;
-  netState: React.MutableRefObject<{ setGs?: (s: PftPlayState) => void }>;
+  netState: React.MutableRefObject<{ setGs?: (s: PftPlayState) => void; levelId?: string }>;
   foldRef: React.MutableRefObject<(p: unknown) => void>;
   roomCode: string | null;
 }) {
+  const roomLevel = netState.current.levelId
+    ? (LEVEL_DEFS.find((x) => x.id === netState.current.levelId)?.def ?? level)
+    : level;
   const engineRef = useRef<PftEngine | null>(null);
   if (!engineRef.current) {
     const e = new PftEngine();
-    e.begin(level);
+    e.begin(roomLevel);
     engineRef.current = e;
   }
   const engine = engineRef.current;
@@ -179,10 +183,10 @@ function PlayScreen({
   const seq = useRef(0);
 
   const legal: PftAction[] = useMemo(
-    () => (verdict?.accepted ? [] : engine.getLegalActions(level, gs)),
-    [engine, level, gs, verdict],
+    () => (verdict?.accepted ? [] : engine.getLegalActions(roomLevel, gs)),
+    [engine, roomLevel, gs, verdict],
   );
-  const statuses = useMemo(() => analyzeOrderStatuses(level, gs), [level, gs]);
+  const statuses = useMemo(() => analyzeOrderStatuses(roomLevel, gs), [roomLevel, gs]);
 
   function cueFor(action: PftAction, events: GameEvent[]) {
     const t = (action as { type?: string }).type ?? "";
@@ -234,7 +238,7 @@ function PlayScreen({
   // the engine locally (deterministic ⇒ identical state on every client).
   netState.current.setGs = setGs;
   foldRef.current = (p: unknown) => {
-    const res = engine.applyAction(level, gs, p as PftAction);
+    const res = engine.applyAction(roomLevel, gs, p as PftAction);
     setGs(res.state);
     cueFor(p as PftAction, res.events);
     setLedger((l) => [
@@ -244,7 +248,7 @@ function PlayScreen({
   };
 
   function restart() {
-    engine.begin(level);
+    engine.begin(roomLevel);
     setGs(engine.currentState);
     setLedger([]);
     setVerdict(null);
@@ -259,20 +263,20 @@ function PlayScreen({
   }
 
   const moves = gs.beat;
-  const overPar = level.par !== undefined && moves > level.par;
+  const overPar = roomLevel.par !== undefined && moves > roomLevel.par;
 
   return (
     <main className="play-screen">
       <header className="topbar">
         <div>
-          <span className="level-id">{level.levelId.toUpperCase()}</span>
-          <h1>{level.title}</h1>
+          <span className="level-id">{roomLevel.levelId.toUpperCase()}</span>
+          <h1>{roomLevel.title}</h1>
           {roomCode && <span className="badge">Convoy {roomCode}</span>}
         </div>
         <div className="topbar-actions">
           <span className={`move-counter ${overPar ? "over" : ""}`} data-testid="move-counter">
-            {moves} moves{level.par !== undefined ? ` · par ${level.par}` : ""}
-            {overPar ? ` (+${moves - (level.par ?? 0)} late)` : ""}
+            {moves} moves{roomLevel.par !== undefined ? ` · par ${roomLevel.par}` : ""}
+            {overPar ? ` (+${moves - (roomLevel.par ?? 0)} late)` : ""}
           </span>
           <button type="button" className="ghost" data-testid="undo" onClick={undo} disabled={net.current !== null || ledger.length === 0}>
             Undo
@@ -297,14 +301,14 @@ function PlayScreen({
 
       <div className="play-layout">
         <section className="board-pane" aria-label="Map">
-          <SceneView level={level} state={gs} selected={selected} onSelect={setSelected} />
+          <SceneView level={roomLevel} state={gs} selected={selected} onSelect={setSelected} />
           <LedgerView entries={ledger} />
         </section>
 
         <aside className="side-pane">
-          <OrdersPanel level={level} statuses={statuses} />
+          <OrdersPanel level={roomLevel} statuses={statuses} />
           <ActionPanel legal={legal} gs={gs} onCommit={commit} />
-          <Inspection level={level} gs={gs} selected={selected} />
+          <Inspection level={roomLevel} gs={gs} selected={selected} />
           <section className="finish" aria-label="Finish the contract">
             <button
               type="button"
@@ -320,9 +324,9 @@ function PlayScreen({
           </section>
           {(() => {
             const content =
-              PFT_HINTS[level.levelId] ??
-              (CARDS[level.levelId.toUpperCase()]
-                ? { tiers: [...CARDS[level.levelId.toUpperCase()]!.hints] }
+              PFT_HINTS[roomLevel.levelId] ??
+              (CARDS[roomLevel.levelId.toUpperCase()]
+                ? { tiers: [...CARDS[roomLevel.levelId.toUpperCase()]!.hints] }
                 : undefined);
             return content ? <HintLadder content={content} /> : null;
           })()}
@@ -335,7 +339,7 @@ function PlayScreen({
             <p className="overline">Contract complete</p>
             <h2>Forwarded on schedule</h2>
             <p>
-              Every order is fulfilled in {moves} moves{level.par !== undefined ? ` (par ${level.par}${overPar ? `, ${moves - level.par} late` : ""})` : ""}. The
+              Every order is fulfilled in {moves} moves{roomLevel.par !== undefined ? ` (par ${roomLevel.par}${overPar ? `, ${moves - roomLevel.par} late` : ""})` : ""}. The
               town will remember the route. Final hash <code>{verdict.finalHash.slice(0, 12)}…</code>
             </p>
             <div className="row">
