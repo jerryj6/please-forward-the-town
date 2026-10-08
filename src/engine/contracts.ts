@@ -36,6 +36,8 @@ export interface CommittedAction<A = unknown> {
 /** Deterministic event emitted by the engine; drives UI, audio, observations. */
 export interface GameEvent {
   beat: Beat;
+  /** engine-internal phase tag (PFT commit phase etc.) */
+  phase?: string;
   type: string;
   entityId?: EntityId;
   data?: Record<string, unknown>;
@@ -44,10 +46,11 @@ export interface GameEvent {
 /** Result of evaluating one observation/outcome predicate against a run. */
 export interface PredicateResult {
   predicateId: string;
-  kind: "observation" | "outcome" | "constraint";
+  kind?: "observation" | "outcome" | "constraint";
   passed: boolean;
   /** Earliest meaningful divergence for failed predicates (TRS-010). */
   divergence?: { beat: Beat; entityId?: EntityId; expected: string; actual: string };
+  detail?: string;
 }
 
 export interface RunEvaluation {
