@@ -1,8 +1,7 @@
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import { readFileSync, existsSync, statSync } from "node:fs";
 import { join, extname, resolve } from "node:path";
-import { startRoomServer } from "./index.js";
-import { pftAdapter } from "./pft-adapter.js";
+import { startRtRoomServer } from "./rt/manager.js";
 
 const PORT = Number(process.env.PORT ?? 8787);
 const DIST = "dist";
@@ -20,12 +19,5 @@ const http = createServer((req: IncomingMessage, res: ServerResponse) => {
   res.writeHead(200, { "content-type": MIME[extname(p)] ?? "application/octet-stream" }).end(readFileSync(p));
 });
 
-// The room server owns ws upgrade handling on the same HTTP server.
-startRoomServer({
-  adapters: [pftAdapter],
-  defaultGameType: "pft",
-  httpServer: http,
-  wsPath: "/ws",
-}).then(() => {
-  http.listen(PORT, () => console.log(`please-forward-the-town on :${PORT} — static /, rooms ws /ws`));
-});
+startRtRoomServer(http);
+http.listen(PORT, () => console.log(`please-forward-the-town on :${PORT} — static /, real-time /rt`));

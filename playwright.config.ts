@@ -5,10 +5,18 @@ export default defineConfig({
   timeout: 30_000,
   reporter: "list",
   use: { baseURL: "http://localhost:5173" },
-  webServer: {
-    command: "npm run dev -- --port 5173 --strictPort",
-    url: "http://localhost:5173",
-    reuseExistingServer: !process.env.CI,
-    timeout: 60_000,
-  },
+  webServer: [
+    {
+      command: "npm run dev:server",
+      url: "http://localhost:8787/healthz",
+      reuseExistingServer: !process.env.CI,
+      timeout: 60_000,
+    },
+    {
+      command: "npm run dev -- --port 5173 --strictPort",
+      url: "http://localhost:5173",
+      reuseExistingServer: !process.env.CI,
+      timeout: 60_000,
+    },
+  ],
 });
