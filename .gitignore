@@ -1,0 +1,7 @@
+node_modules/
+dist/
+dist-server/
+evidence/runs/
+.DS_Store
+*.local
+.env

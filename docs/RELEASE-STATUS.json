@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "gameId": "please-forward-the-town",
+  "releaseStage": "not_started",
+  "gates": {
+    "G0": {
+      "status": "not_run"
+    },
+    "G1": {
+      "status": "not_run"
+    },
+    "G2": {
+      "status": "not_run"
+    },
+    "G3": {
+      "status": "not_run"
+    },
+    "G4": {
+      "status": "not_run"
+    },
+    "G5": {
+      "status": "not_run"
+    },
+    "G6": {
+      "status": "not_run"
+    }
+  }
+}

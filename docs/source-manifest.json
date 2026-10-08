@@ -1,0 +1,31 @@
+{
+  "generated": "2026-10-08",
+  "masterSha256": "9eafb3af47415a2015a9d0842271a6524f6aca2536ab714721c79438b135eea7",
+  "files": [
+    {
+      "path": "docs/MASTER-HANDOFF.md",
+      "sha256": "9eafb3af47415a2015a9d0842271a6524f6aca2536ab714721c79438b135eea7",
+      "role": "canonical-source"
+    },
+    {
+      "path": "docs/source/CONCEPT-DOSSIER.md",
+      "sha256": "bb916de7809791fd4f8210b746bf0aacf9a407bb98f0fee4178b35d987f9770d",
+      "role": "historical-dossier-superseded-scope"
+    },
+    {
+      "path": "docs/source/HANDOFF-VALIDATION.md",
+      "sha256": "486f443854bdc0bd75cb16eef0f01c48bbb2d8ef46233baf0504ed312406d0a1",
+      "role": "documentation-report"
+    },
+    {
+      "path": "docs/source/HANDOFF-VALIDATION.json",
+      "sha256": "9b344f18731c66357bdcc36efa03003ee786da2731c8db3935185b684e20fd54",
+      "role": "documentation-report"
+    },
+    {
+      "path": "docs/source/SHA256SUMS.txt",
+      "sha256": "e4aa1720782c7a531d5603e46f9c0b2d4e86e5bc88913c7a9373b47252482a1c",
+      "role": "checksums"
+    }
+  ]
+}

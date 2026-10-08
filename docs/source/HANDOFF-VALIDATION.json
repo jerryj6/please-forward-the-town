@@ -1,0 +1,185 @@
+{
+  "artifact": "DEVIN-CLOUD-MASTER-HANDOFF.md",
+  "date": "2026-10-07",
+  "scope": "Handoff document structure and resolved specification issues only; no games built or game tests executed",
+  "masterSha256": "9eafb3af47415a2015a9d0842271a6524f6aca2536ab714721c79438b135eea7",
+  "wordCount": 39259,
+  "byteCount": 273891,
+  "checks": [
+    {
+      "name": "dossier_markers",
+      "result": "pass",
+      "detail": "One recoverable original-dossier block"
+    },
+    {
+      "name": "original_bytes",
+      "result": "pass",
+      "detail": "Embedded original matches the original file byte for byte"
+    },
+    {
+      "name": "original_digest",
+      "result": "pass",
+      "detail": "bb916de7809791fd4f8210b746bf0aacf9a407bb98f0fee4178b35d987f9770d"
+    },
+    {
+      "name": "TRS_curriculum",
+      "result": "pass",
+      "detail": "TRS-01, TRS-02, TRS-03, TRS-04, TRS-05, TRS-06, TRS-07, TRS-08, TRS-09, TRS-10, TRS-11, TRS-12"
+    },
+    {
+      "name": "TRS_rules",
+      "result": "pass",
+      "detail": "10 unique formal rule IDs"
+    },
+    {
+      "name": "RBM_curriculum",
+      "result": "pass",
+      "detail": "RBM-01, RBM-02, RBM-03, RBM-04, RBM-05, RBM-06, RBM-07, RBM-08, RBM-09, RBM-10, RBM-11, RBM-12"
+    },
+    {
+      "name": "RBM_rules",
+      "result": "pass",
+      "detail": "12 unique formal rule IDs"
+    },
+    {
+      "name": "PFT_curriculum",
+      "result": "pass",
+      "detail": "PFT-01, PFT-02, PFT-03, PFT-04, PFT-05, PFT-06, PFT-07, PFT-08, PFT-09, PFT-10, PFT-11, PFT-12"
+    },
+    {
+      "name": "PFT_rules",
+      "result": "pass",
+      "detail": "12 unique formal rule IDs"
+    },
+    {
+      "name": "owner_decisions",
+      "result": "pass",
+      "detail": "All ten binding owner decisions"
+    },
+    {
+      "name": "user_flows",
+      "result": "pass",
+      "detail": "Six complete product flows"
+    },
+    {
+      "name": "common_depth_rules",
+      "result": "pass",
+      "detail": "Twelve shared depth requirements"
+    },
+    {
+      "name": "art_prompt_sections",
+      "result": "pass",
+      "detail": "One starter-prompt set per game"
+    },
+    {
+      "name": "art_prompt_counts",
+      "result": "pass",
+      "detail": "21 starter prompts: seven for each game"
+    },
+    {
+      "name": "release_gates",
+      "result": "pass",
+      "detail": "Every G0\u2013G6 gate defined"
+    },
+    {
+      "name": "human_baseline",
+      "result": "pass",
+      "detail": "Explicit human sample and mandatory acceptance policy"
+    },
+    {
+      "name": "human_four_player_TRS",
+      "result": "pass",
+      "detail": "Design and human protocol both name TRS-09/10/11/12"
+    },
+    {
+      "name": "human_four_player_RBM",
+      "result": "pass",
+      "detail": "Design and human protocol both name RBM-08/10/11/12"
+    },
+    {
+      "name": "human_four_player_PFT",
+      "result": "pass",
+      "detail": "Design and human protocol both name PFT-09/10/11/12"
+    },
+    {
+      "name": "unique_anchors",
+      "result": "pass",
+      "detail": "16 unique explicit navigation anchors"
+    },
+    {
+      "name": "anchor_targets",
+      "result": "pass",
+      "detail": "All 16 internal navigation links resolve"
+    },
+    {
+      "name": "balanced_code_fences",
+      "result": "pass",
+      "detail": "6 balanced fenced examples"
+    },
+    {
+      "name": "json_templates",
+      "result": "pass",
+      "detail": "All three JSON templates parse"
+    },
+    {
+      "name": "requirement_template",
+      "result": "pass",
+      "detail": "Requirement template aligns with the QA contract; placeholders remain explicitly labeled"
+    },
+    {
+      "name": "portfolio_scope",
+      "result": "pass",
+      "detail": "Per-game validation covers twelve; portfolio validation covers thirty-six"
+    },
+    {
+      "name": "art_gate_scope",
+      "result": "pass",
+      "detail": "Late-scene review does not block the initial art sample"
+    },
+    {
+      "name": "optional_mastery",
+      "result": "pass",
+      "detail": "Required finale and optional mastery have distinct conditions"
+    },
+    {
+      "name": "tutorial_cost",
+      "result": "pass",
+      "detail": "Tutorial intervention accounting is explicit"
+    },
+    {
+      "name": "tutorial_guard",
+      "result": "pass",
+      "detail": "Tutorial failure derives from ordinary guard detection"
+    },
+    {
+      "name": "counterfactual_depth",
+      "result": "pass",
+      "detail": "Return depth cannot pass through a bookkeeping-only failure"
+    },
+    {
+      "name": "human_dependency",
+      "result": "pass",
+      "detail": "Early human access does not deadlock campaign production"
+    },
+    {
+      "name": "manual_submission",
+      "result": "pass",
+      "detail": "Build/release authorization is distinct from official manual entry"
+    },
+    {
+      "name": "portable_source",
+      "result": "pass",
+      "detail": "No author-machine absolute paths in the receiving master"
+    },
+    {
+      "name": "clean_citations",
+      "result": "pass",
+      "detail": "Only portable source links, no internal web-reference tokens"
+    },
+    {
+      "name": "starter_present",
+      "result": "pass",
+      "detail": "Ready-to-paste execution prompt exists"
+    }
+  ]
+}

@@ -1,0 +1,57 @@
+{
+  "schemaVersion": 1,
+  "gameId": "please-forward-the-town",
+  "masterSha256": "9eafb3af47415a2015a9d0842271a6524f6aca2536ab714721c79438b135eea7",
+  "note": "Requirement ledger per master IV.1. Every mandatory source requirement gets a stable ID with falsifiable acceptance, owner, verifier, implementation paths, verification evidence, status.",
+  "levels": [
+    {
+      "id": "PFT-01",
+      "status": "not_started"
+    },
+    {
+      "id": "PFT-02",
+      "status": "not_started"
+    },
+    {
+      "id": "PFT-03",
+      "status": "not_started"
+    },
+    {
+      "id": "PFT-04",
+      "status": "not_started"
+    },
+    {
+      "id": "PFT-05",
+      "status": "not_started"
+    },
+    {
+      "id": "PFT-06",
+      "status": "not_started"
+    },
+    {
+      "id": "PFT-07",
+      "status": "not_started"
+    },
+    {
+      "id": "PFT-08",
+      "status": "not_started"
+    },
+    {
+      "id": "PFT-09",
+      "status": "not_started"
+    },
+    {
+      "id": "PFT-10",
+      "status": "not_started"
+    },
+    {
+      "id": "PFT-11",
+      "status": "not_started"
+    },
+    {
+      "id": "PFT-12",
+      "status": "not_started"
+    }
+  ],
+  "requirements": []
+}
