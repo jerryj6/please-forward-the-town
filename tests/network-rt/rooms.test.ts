@@ -114,15 +114,15 @@ describe("real-time WebSocket rooms", () => {
       "snap",
       (msg) => {
         const player = (msg.world as { players: Array<{ id: string; x: number }> }).players.find((entry) => entry.id === guestWelcome.playerId);
-        return (msg.tick as number) > guestBefore.tick && Boolean(player && player.x > 6500);
+        return (msg.tick as number) > guestBefore.tick && Boolean(player && player.x > 9500);
       },
     );
     const guestsPlayer = moved.world.players.find((player) => player.id === guestWelcome.playerId)!;
     const hostPlayer = moved.world.players.find((player) => player.id === hostWelcome.playerId)!;
     const thirdPlayer = moved.world.players.find((player) => player.id === thirdWelcome.playerId)!;
-    expect(guestsPlayer.x).toBeGreaterThan(6500);
-    expect(hostPlayer.x).toBe(6500);
-    expect(thirdPlayer.x).toBe(6500);
+    expect(guestsPlayer.x).toBeGreaterThan(9500);
+    expect(hostPlayer.x).toBe(9500);
+    expect(thirdPlayer.x).toBe(9500);
     for (const client of [host, third, fourth]) {
       await client.waitFor("snap", (message) => message.tick === moved.tick);
     }

@@ -19,6 +19,7 @@ export interface LevelDefinition {
   title: string;
   timeLimitSec: number;
   stars: { three: number; two: number };
+  sandbarFloodsAtSec?: number;
   map: string[];
   orders: OrderDefinition[];
   recipients: Record<string, string>;
@@ -63,6 +64,7 @@ export interface World {
   height: number;
   tick: number;
   timeRemainingTicks: number;
+  sandbarFlooded: boolean;
   phase: WorldPhase;
   stars: number;
   players: Map<string, Player>;
@@ -78,6 +80,7 @@ export type SimEvent =
   | { type: "deliver"; playerId: string; itemId: string; orderId: string; label: string }
   | { type: "splash"; playerId: string }
   | { type: "respawn"; playerId: string }
+  | { type: "flood" }
   | { type: "complete"; stars: number }
   | { type: "failed"; message: "The tide's in" };
 
@@ -85,6 +88,7 @@ export interface WorldSnapshot {
   levelId: string;
   tick: number;
   timeRemainingTicks: number;
+  sandbarFlooded: boolean;
   phase: WorldPhase;
   stars: number;
   players: Array<{

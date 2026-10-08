@@ -8,6 +8,7 @@ import type {
   Point,
   SimEvent,
   World,
+  WorldSnapshot,
 } from "./types.js";
 
 export const TICKS_PER_SECOND = 20;
@@ -70,12 +71,26 @@ function isWalkable(world: World, x: number, y: number): boolean {
   if (x < 0 || y < 0 || x >= world.width || y >= world.height) return false;
   const tile = charAt(world, x, y);
   if (tile === "=" || tile === "-") return world.sockets.has(key(x, y));
+  if (tile === ",") return !world.sandbarFlooded;
   return tile !== "~" && tile !== undefined;
 }
 
 function isGround(world: World, x: number, y: number): boolean {
   const tile = charAt(world, x, y);
-  return tile !== undefined && tile !== "~" && tile !== "=" && tile !== "-";
+  return tile !== undefined && tile !== "~" && tile !== "=" && tile !== "-" && tile !== ",";
+}
+
+function isBodyWalkable(world: World, pos: Point): boolean {
+  const radius = 250;
+  return [
+    { x: pos.x - radius, y: pos.y - radius },
+    { x: pos.x + radius, y: pos.y - radius },
+    { x: pos.x - radius, y: pos.y + radius },
+    { x: pos.x + radius, y: pos.y + radius },
+  ].every((corner) => {
+    const tile = tileAt(corner);
+    return isWalkable(world, tile.x, tile.y);
+  });
 }
 
 function findItemAt(world: World, x: number, y: number, state: Item["state"]): Item | undefined {
@@ -121,21 +136,48 @@ function deliverAtZone(world: World, player: Player, tile: Point, events: SimEve
   return true;
 }
 
-function doAction(world: World, player: Player, events: SimEvent[]): void {
+function actionCandidates(player: Player): Point[] {
   const forward = facingVector(player.facing);
-  const target = {
+  const underfoot = tileAt(player.pos);
+  const facingTile = {
     x: Math.floor((player.pos.x + forward.x * ACTION_REACH) / TILE),
     y: Math.floor((player.pos.y + forward.y * ACTION_REACH) / TILE),
   };
-  const underfoot = tileAt(player.pos);
+  const orthogonal = [
+    { x: 0, y: -1 },
+    { x: 1, y: 0 },
+    { x: 0, y: 1 },
+    { x: -1, y: 0 },
+  ]
+    .map((offset, index) => ({
+      point: { x: underfoot.x + offset.x, y: underfoot.y + offset.y },
+      order: index,
+      dot: offset.x * forward.x + offset.y * forward.y,
+    }))
+    .sort((a, b) => b.dot - a.dot || a.order - b.order);
+  const candidates = [facingTile, underfoot, ...orthogonal.map(({ point }) => point)];
+  const seen = new Set<string>();
+  return candidates.filter((candidate) => {
+    const candidateKey = key(candidate.x, candidate.y);
+    if (seen.has(candidateKey)) return false;
+    seen.add(candidateKey);
+    return true;
+  });
+}
 
-  if (player.carrying) {
-    const carried = world.items.get(player.carrying);
-    if (!carried) {
-      player.carrying = null;
-      return;
-    }
-    if (carried.kind === "plank" && isSocket(world, target.x, target.y) && !world.sockets.has(key(target.x, target.y))) {
+function doAction(world: World, player: Player, events: SimEvent[]): void {
+  const underfoot = tileAt(player.pos);
+  const candidates = actionCandidates(player);
+
+  const carried = player.carrying ? world.items.get(player.carrying) : undefined;
+  if (player.carrying && !carried) {
+    player.carrying = null;
+    return;
+  }
+
+  if (carried?.kind === "plank") {
+    for (const target of candidates) {
+      if (!isSocket(world, target.x, target.y) || world.sockets.has(key(target.x, target.y))) continue;
       carried.state = "deployed";
       carried.pos = target;
       world.sockets.set(key(target.x, target.y), carried.id);
@@ -143,40 +185,45 @@ function doAction(world: World, player: Player, events: SimEvent[]): void {
       events.push({ type: "deploy", playerId: player.id, itemId: carried.id, x: target.x, y: target.y });
       return;
     }
-    if (deliverAtZone(world, player, underfoot, events)) return;
-    if (
-      isGround(world, target.x, target.y) &&
-      !findItemAt(world, target.x, target.y, "ground")
-    ) {
-      carried.state = "ground";
-      carried.pos = target;
-      player.carrying = null;
-      return;
+  }
+
+  if (carried) {
+    for (const target of candidates) {
+      if (deliverAtZone(world, player, target, events)) return;
+    }
+    for (const target of candidates) {
+      if (
+        isGround(world, target.x, target.y) &&
+        !findItemAt(world, target.x, target.y, "ground")
+      ) {
+        carried.state = "ground";
+        carried.pos = target;
+        player.carrying = null;
+        return;
+      }
     }
     return;
   }
 
-  const groundItem = findItemAt(world, target.x, target.y, "ground")
-    ?? findItemAt(world, underfoot.x, underfoot.y, "ground");
-  if (groundItem) {
+  for (const target of candidates) {
+    const groundItem = findItemAt(world, target.x, target.y, "ground");
+    if (!groundItem) continue;
     groundItem.state = "carried";
     player.carrying = groundItem.id;
     events.push({ type: "pickup", playerId: player.id, itemId: groundItem.id, itemKind: groundItem.kind });
     return;
   }
 
-  const deployedId = world.sockets.get(key(target.x, target.y));
-  const deployed = deployedId ? world.items.get(deployedId) : undefined;
-  if (
-    deployed &&
-    deployed.kind === "plank" &&
-    deployed.state === "deployed" &&
-    (underfoot.x !== target.x || underfoot.y !== target.y)
-  ) {
+  for (const target of candidates) {
+    if (underfoot.x === target.x && underfoot.y === target.y) continue;
+    const deployedId = world.sockets.get(key(target.x, target.y));
+    const deployed = deployedId ? world.items.get(deployedId) : undefined;
+    if (!deployed || deployed.kind !== "plank" || deployed.state !== "deployed") continue;
     world.sockets.delete(key(target.x, target.y));
     deployed.state = "carried";
     player.carrying = deployed.id;
     events.push({ type: "pickup", playerId: player.id, itemId: deployed.id, itemKind: deployed.kind });
+    return;
   }
 }
 
@@ -235,6 +282,7 @@ export function createWorld(level: LevelDefinition, playerIds: string[]): World 
     height,
     tick: 0,
     timeRemainingTicks: level.timeLimitSec * TICKS_PER_SECOND,
+    sandbarFlooded: false,
     phase: "playing",
     stars: 0,
     players,
@@ -294,15 +342,23 @@ export function step(world: World, inputs: Map<string, Input>): SimEvent[] {
       const moveX = Math.trunc((dx * PLAYER_SPEED) / length);
       const moveY = Math.trunc((dy * PLAYER_SPEED) / length);
       const nextX = player.pos.x + moveX;
-      if (isWalkable(world, Math.floor(nextX / TILE), Math.floor(player.pos.y / TILE))) player.pos.x = nextX;
+      if (isBodyWalkable(world, { x: nextX, y: player.pos.y })) player.pos.x = nextX;
       const nextY = player.pos.y + moveY;
-      if (isWalkable(world, Math.floor(player.pos.x / TILE), Math.floor(nextY / TILE))) player.pos.y = nextY;
+      if (isBodyWalkable(world, { x: player.pos.x, y: nextY })) player.pos.y = nextY;
     }
     if (input.action) doAction(world, player, events);
   }
 
-  checkSplash(world, events);
   world.timeRemainingTicks -= 1;
+  if (
+    !world.sandbarFlooded &&
+    world.level.sandbarFloodsAtSec !== undefined &&
+    world.timeRemainingTicks <= world.level.sandbarFloodsAtSec * TICKS_PER_SECOND
+  ) {
+    world.sandbarFlooded = true;
+    events.push({ type: "flood" });
+  }
+  checkSplash(world, events);
   if (world.players.size > 0 && world.orders.every((order) => order.fulfilled) && [...world.players.values()].every((player) => {
     const tile = tileAt(player.pos);
     return charAt(world, tile.x, tile.y) === "X";
@@ -319,11 +375,12 @@ export function step(world: World, inputs: Map<string, Input>): SimEvent[] {
   return events;
 }
 
-export function snapshot(world: World) {
+export function snapshot(world: World): WorldSnapshot {
   return {
     levelId: world.level.id,
     tick: world.tick,
     timeRemainingTicks: world.timeRemainingTicks,
+    sandbarFlooded: world.sandbarFlooded,
     phase: world.phase,
     stars: world.stars,
     players: [...world.players.values()].map((player) => ({
