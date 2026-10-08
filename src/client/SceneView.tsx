@@ -15,12 +15,6 @@ interface Props {
   onSelect: (id: string | null) => void;
 }
 
-const GLYPH: Record<string, string> = {
-  parcel: "✉",
-  bridge: "═",
-  courier: "✦",
-};
-
 /** Everywhere a CargoLocation renders, as an entity point. */
 export default function SceneView({ level, state, selected, onSelect }: Props) {
   const locOf = (loc: CargoLocation): { x: number; y: number } | null => {
