@@ -15,6 +15,8 @@ Verification artifacts for gate review (generated 2026-10-08). Re-run any row lo
 | Anchor freeze signoff | art/ANCHOR-REVIEW.md (independent reviewer 406d53d6) | FROZEN all 3 |
 | Audio manifest | docs/AUDIO-MANIFEST.md (procedural WebAudio cue table) | PASS |
 | Playtest kit | docs/PLAYTEST-KIT.md | ready |
+| Full verify suite | test:properties + test:campaign + test:depth + test:performance + test:a11y + test:visual | PASS |
+| A11y fixes | WCAG contrast + select labels (axe-driven) | PASS |
 | Human playtests (G5) | pending external testers | PENDING |
 | Production verify (G6) | `npm run verify:production --url <deployed>` | pending deploy |
 
