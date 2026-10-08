@@ -106,8 +106,10 @@ export default function SceneView({ level, state, selected, onSelect }: Props) {
               onClick={(ev) => { ev.stopPropagation(); onSelect(selected === f.id ? null : f.id); }}
               data-testid={`ent-${f.id}`}
             >
-              <path d={`M ${p.x - 26} ${p.y} L ${p.x + 26} ${p.y} L ${p.x + 16} ${p.y + 14} L ${p.x - 16} ${p.y + 14} Z`} className="ferry-hull" />
-              <rect x={p.x - 8} y={p.y - 12} width="16" height="12" rx="2" className="ferry-cabin" />
+              <image
+                href={`/assets/sprites/infra/pft-infrastructure-${fa && fa.cargo.length > 0 ? "03" : "02"}.png`}
+                x={p.x - 34} y={p.y - 30} width="68" height="52" preserveAspectRatio="xMidYMid meet"
+              />
               <text x={p.x} y={p.y + 30} className="ent-label">
                 {f.name}
                 {fa && fa.cargo.length > 0 ? ` (${fa.cargo.length}/${f.parcelCapacity})` : ""}
@@ -146,17 +148,19 @@ export default function SceneView({ level, state, selected, onSelect }: Props) {
         const b = nodePos(level, site.connects[1]);
         return (
           <g key={`dep-${pid}`} className="deployed">
-            <line x1={a.x} y1={a.y} x2={b.x} y2={b.y} className="plank" />
-            {[0.28, 0.5, 0.72].map((t, i) => (
-              <line
-                key={i}
-                x1={a.x + (b.x - a.x) * t}
-                y1={a.y + (b.y - a.y) * t - 6}
-                x2={a.x + (b.x - a.x) * t}
-                y2={a.y + (b.y - a.y) * t + 6}
-                className="plank-rib"
-              />
-            ))}
+            {(() => {
+              const mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
+              const len = Math.hypot(b.x - a.x, b.y - a.y);
+              const ang = (Math.atan2(b.y - a.y, b.x - a.x) * 180) / Math.PI;
+              return (
+                <image
+                  href="/assets/sprites/infra/pft-infrastructure-00.png"
+                  x={mx - len / 2} y={my - 26} width={len} height={52}
+                  transform={`rotate(${ang} ${mx} ${my})`}
+                  preserveAspectRatio="none"
+                />
+              );
+            })()}
           </g>
         );
       })}
@@ -214,10 +218,9 @@ export default function SceneView({ level, state, selected, onSelect }: Props) {
             onClick={(ev) => { ev.stopPropagation(); onSelect(sel ? null : pid); }}
             data-testid={`ent-${pid}`}
           >
-            <rect x={base.x + o.x - 9} y={base.y + o.y - 9} width="18" height="18" rx="4" />
-            <text x={base.x + o.x} y={base.y + o.y + 4} className="cargo-glyph">
-              {GLYPH.parcel}
-            </text>
+            <image href="/assets/sprites/courier/pft-courier-parcels-04.png"
+              x={base.x + o.x - 14} y={base.y + o.y - 14} width="28" height="24"
+              preserveAspectRatio="xMidYMid meet" />
             <text x={base.x + o.x} y={base.y + o.y + 26} className="ent-label">
               {nameOf(pid)}
             </text>
@@ -240,10 +243,10 @@ export default function SceneView({ level, state, selected, onSelect }: Props) {
             onClick={(ev) => { ev.stopPropagation(); onSelect(sel ? null : pid); }}
             data-testid={`ent-${pid}`}
           >
-            <rect x={base.x + o.x - 11} y={base.y + o.y - 7} width="22" height="14" rx="3" />
-            <text x={base.x + o.x} y={base.y + o.y + 4} className="cargo-glyph">
-              {GLYPH.bridge}
-            </text>
+            <image
+              href={`/assets/sprites/${p.status === "delivered" ? "infra/pft-infrastructure-01" : "courier/pft-courier-parcels-06"}.png`}
+              x={base.x + o.x - 16} y={base.y + o.y - 14} width="32" height="26"
+              preserveAspectRatio="xMidYMid meet" />
             <text x={base.x + o.x} y={base.y + o.y + 24} className="ent-label">
               {nameOf(pid)}{p.status === "delivered" ? " ✓" : ""}
             </text>
@@ -265,8 +268,9 @@ export default function SceneView({ level, state, selected, onSelect }: Props) {
             onClick={(ev) => { ev.stopPropagation(); onSelect(sel ? null : c.id); }}
             data-testid={`ent-${c.id}`}
           >
-            <circle cx={p.x + o.x} cy={p.y + o.y - 10} r="8" className="courier-head" />
-            <rect x={p.x + o.x - 9} y={p.y + o.y - 2} width="18" height="20" rx="6" className="courier-body" />
+            <image href="/assets/sprites/courier/pft-courier-parcels-00.png"
+              x={p.x + o.x - 15} y={p.y + o.y - 30} width="30" height="42"
+              preserveAspectRatio="xMidYMax meet" />
             <text x={p.x + o.x} y={p.y + o.y + 32} className="ent-label">
               {c.name}{s.cargo.length > 0 ? ` ✉${s.cargo.length}` : ""}
             </text>
