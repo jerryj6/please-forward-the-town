@@ -57,6 +57,12 @@ export default function SceneView({ level, state, selected, onSelect }: Props) {
     return Math.max(0, sibs.indexOf(id));
   };
 
+  // Scene entities are click targets; give keyboard users the same path
+  // (role=button + Enter/Space activation) since <g> isn't natively tabbable.
+  const entKey = (fn: () => void) => (ev: React.KeyboardEvent) => {
+    if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); ev.stopPropagation(); fn(); }
+  };
+
   return (
     <svg
       className="scene"
@@ -96,6 +102,9 @@ export default function SceneView({ level, state, selected, onSelect }: Props) {
           <g key={f.id}>
             <path d={`M ${a.x} ${a.y + 30} Q ${(a.x + b.x) / 2} ${Math.max(a.y, b.y) + 78} ${b.x} ${b.y + 30}`} className="ferry-lane" />
             <g
+              role="button"
+              tabIndex={0}
+              onKeyDown={entKey(() => onSelect(selected === f.id ? null : f.id))}
               className={`ferry ${selected === f.id ? "selected" : ""}`}
               onClick={(ev) => { ev.stopPropagation(); onSelect(selected === f.id ? null : f.id); }}
               data-testid={`ent-${f.id}`}
@@ -208,6 +217,9 @@ export default function SceneView({ level, state, selected, onSelect }: Props) {
         return (
           <g
             key={pid}
+            role="button"
+            tabIndex={0}
+            onKeyDown={entKey(() => onSelect(sel ? null : pid))}
             className={`cargo parcel ${sel ? "selected" : ""}`}
             onClick={(ev) => { ev.stopPropagation(); onSelect(sel ? null : pid); }}
             data-testid={`ent-${pid}`}
@@ -233,6 +245,9 @@ export default function SceneView({ level, state, selected, onSelect }: Props) {
         return (
           <g
             key={pid}
+            role="button"
+            tabIndex={0}
+            onKeyDown={entKey(() => onSelect(sel ? null : pid))}
             className={`cargo piece ${sel ? "selected" : ""}`}
             onClick={(ev) => { ev.stopPropagation(); onSelect(sel ? null : pid); }}
             data-testid={`ent-${pid}`}
@@ -258,6 +273,9 @@ export default function SceneView({ level, state, selected, onSelect }: Props) {
         return (
           <g
             key={c.id}
+            role="button"
+            tabIndex={0}
+            onKeyDown={entKey(() => onSelect(sel ? null : c.id))}
             className={`courier ${sel ? "selected" : ""}`}
             onClick={(ev) => { ev.stopPropagation(); onSelect(sel ? null : c.id); }}
             data-testid={`ent-${c.id}`}
