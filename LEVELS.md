@@ -707,3 +707,31 @@ family (2). Difficulty is driven by plan-space shape, not level size.
 **CoopNote verification (courier-removal method):** all 52 courier
 streams across 18 winning traces are load-bearing — deleting any single
 courier's actions leaves the level incomplete. No filler roles.
+
+## Appendix — Distinct solution multisets by length (pass 16)
+
+`byLen` (raw plans) vs `distinctByLen` (action-multiset families). Multi-family optima named.
+
+- **pft-01** bound 13: byLen {9:1,11:2,12:1,13:1} = distinct — clean. Optimum 9 unique.
+- **pft-02** bound 20: {16:1,17:2,18:4,19:5,20:5} all distinct. Optimum 16 unique.
+- **pft-03** bound 21: {17:1,19:3,20:2,21:2} all distinct. Optimum 17 unique. No 18 (confirmed gap).
+- **pft-04** bound 22 capped at 1.5M states: {18:1,19:1,20:4,21:4,22:5} all distinct (honest bound — run capped, second optimal-18 may exist as documented alternate).
+- **pft-05** bound 17: byLen {13:3,14:3,15:4,16:4,17:4} → distinct {13:2,14:2,15:3,16:3,17:2}. Two optimal-13 families: direct vs role-swap (bridge pack+sale by either courier).
+- **pft-06** bound 21: byLen {17:2,18:3,19:5,20:5,21:5} → distinct {17:1,18:2,19:4,20:4,21:4}. Single optimal-17 family (the two verified 17s are commutes).
+- **pft-07** bound 24: byLen {20:2,21:3,22:3,23:4,24:4} → distinct {20:1,21:2,22:2,23:3,24:3}. Single optimal-20 family.
+- **pft-08** endgame window: 24 completions, 3 optimal-21 strategies.
+- **pft-09** endgame window: 7 completions, 2 optimal-38 strategies; no 39 plan exists (rung gap).
+- **pft-10** endgame window: 2 optimal-28 strategies (incl. TRACE_C's sibling).
+- **pft-11** endgame window: capped mid-window — optimum unreached within 1M states (honest bound).
+- **pft-12** endgame window: 23 completions, 1 distinct optimal-44 strategy (finale optimum single-valued; width lives at +1/+2).
+
+## Appendix — Tolerated-verb deny-chain (pass 16)
+
+Only two verbs tolerated in the DENY sweep; chain stress confirms both structural:
+
+- **pft-02 `drop`**: 17 plans total, 15 without drop → drop appears in 2 plans and spans no optimum — an optional repositioning idiom, not a bound artifact (non-drop solutions exist at EVERY length incl. optimum 16).
+- **pft-06 `load_ferry`**: 20 plans with vs 20 without — the verb never appears in any plan ≤21. Truly optional idiom (dock-staging is available but never needed); the required order semantics live on `hand_over_ferry` (0 completions without).
+
+## Appendix — Save/restore byte-exactness (pass 16)
+
+`audit/probe-save.mts`: per level, play half the trace → `serialize()` → `restore()` into a fresh engine → second round-trip at same point → finish trace. 12/12 levels: hash matches the uninterrupted baseline, completion still reached. Journal + state round-trip cleanly mid-board.
