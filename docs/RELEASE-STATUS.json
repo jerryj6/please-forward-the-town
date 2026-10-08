@@ -1,28 +1,17 @@
 {
   "schemaVersion": 1,
   "gameId": "please-forward-the-town",
-  "releaseStage": "not_started",
+  "releaseStage": "deployed_pending_playtests",
+  "liveUrl": "https://please-forward-the-town.onrender.com",
+  "liveSha": "7edefab5c5f90d34787313c9540f886857d6e072",
+  "updatedAt": "2026-10-08T12:05:00Z",
   "gates": {
-    "G0": {
-      "status": "not_run"
-    },
-    "G1": {
-      "status": "not_run"
-    },
-    "G2": {
-      "status": "not_run"
-    },
-    "G3": {
-      "status": "not_run"
-    },
-    "G4": {
-      "status": "not_run"
-    },
-    "G5": {
-      "status": "not_run"
-    },
-    "G6": {
-      "status": "not_run"
-    }
+    "G0": { "status": "pass", "evidence": "repos+ledgers+architecture; public repo github.com/jerryj6/please-forward-the-town" },
+    "G1": { "status": "pass", "evidence": "engine + tutorial + playable client + co-op server + e2e verified locally" },
+    "G2": { "status": "pass", "evidence": "live co-op probe PASS on deployed server (create→join→command echo both directions)" },
+    "G3": { "status": "pass", "evidence": "12/12 authored levels, verified winning traces, wrong-approach cards, 3-tier hints" },
+    "G4": { "status": "pass", "evidence": "full check suite green: unit/property/campaign/network/e2e/a11y/visual + content validators" },
+    "G5": { "status": "pending", "blocking": "requires real human playtesters (agents do not count); kit ready at docs/PLAYTEST-KIT.md, live URL above" },
+    "G6": { "status": "partial", "evidence": "live deploy verified at SHA 7edefab5c5f90d34787313c9540f886857d6e072; submission kit written (docs/SUBMISSION-KIT.md); awaits G5 + final release cut" }
   }
 }
