@@ -217,8 +217,10 @@ a staged parcel on a dock, and neither courier ever touches the other's
 route.
 
 **Solution space (bounded enumeration).** Complete DFS to par+4 (bound 17):
-18 plans — THREE optimal 13-move plans, including a real role-swap: the
-bridge can be packed and sold by either courier, not just Lark.
+18 plans → 12 distinct action-multisets (6 are commute-reorders of
+another plan). **Two distinct optimal 13-move strategies** — one is the
+real role-swap: the bridge can be packed and sold by either courier,
+not just Lark.
 
 ---
 
@@ -267,8 +269,10 @@ Lark exits by land at the West gate; Wren sails the last fare and stays.
 the freight; whoever signs the boat over is the last one East.
 
 **Solution space (bounded enumeration).** Complete DFS to par+4 (bound 21):
-20 plans — two optimal 17-move plans (direct carries vs dock-staged
-freight), the rest are scheduling variants to 21.
+20 plans → 15 distinct action-multisets. **One strategic optimum** —
+the two enumerated 17-move plans are a commute-reorder pair (same
+actions, different interleave); the dock-staged-freight strategy
+verifies separately at 22 (trace B).
 
 ---
 
