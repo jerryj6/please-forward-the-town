@@ -8,7 +8,7 @@ blocks the G6 ship gate unless marked **[BLOCKER]**.
       Render deploy of render.yaml, then verify:production against the live build id.
 - [ ] **G5 [BLOCKER]**: real human playtests per docs/PLAYTEST-KIT.md — scripted
       engine/browser runs are labeled automated playtests and do NOT count.
-- [x] Cover art: 2400×1350 final shipped at public/assets/ple-cover-2400.png (SHA in art manifest) — done 2026-10-08
+- [x] Cover art: 2400×1350 final shipped at public/assets/pft-cover-2400.png (SHA in art manifest) — done 2026-10-08
       (AI upscaler or re-render at target size) before submission, not a resize.
 
 ## Post-release (deliberate deferrals)
