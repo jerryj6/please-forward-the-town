@@ -161,10 +161,10 @@ pass).**
 needs the stair again); Wren owns the water and the packing list. The
 conversation before the stair leaves: "who is still aloft?"
 
-**Solution space (bounded enumeration).** Complete DFS to par+2 (bound 20):
-9 plans — two optimal 18-move plans plus variants including the hoist
-strategy (verified trace B); par+4 was intractable at the 3M-state cap
-(bound documented in audit/PFT-AUDIT-PASS4.md).
+**Solution space (bounded enumeration).** Complete DFS to par+4 (bound 22,
+1.6M states): 19 plans — two optimal 18-move plans plus variants at
+19–22 including the hoist strategy (verified trace B). No under-par
+degenerate; no rung gap here (every length 18–22 has a plan).
 
 ---
 

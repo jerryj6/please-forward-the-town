@@ -11,7 +11,7 @@ import { PFT09_THREE_USEFUL_PARCELS as L09 } from '../src/content/levels/pft09-t
 import { PFT10_THE_DETOUR_DIVIDEND as L10 } from '../src/content/levels/pft10-the-detour-dividend.js';
 import { PFT11_MAIL_THE_POST_OFFICE as L11 } from '../src/content/levels/pft11-mail-the-post-office.js';
 import { PFT12_EVERYTHING_MUST_GO as L12 } from '../src/content/levels/pft12-everything-must-go.js';
-import { WINNING_TRACES } from '../tests/lib/winning-traces.js';
+import { readFileSync } from 'node:fs';
 
 const WINDOW = Number(process.env.WINDOW ?? 8);
 const MAX_STATES = Number(process.env.MAX_STATES ?? 1_000_000);
@@ -20,11 +20,8 @@ const MAX_MS = Number(process.env.MAX_MS ?? 90_000);
 const W='courier-1', L='courier-2', F3='courier-3', S='courier-4', F='ferry-1',
   L2='courier-2', W4='courier-1', L4='courier-2', L5='courier-2', W5='courier-1',
   C3='courier-1';
-const body = (levelKey: string, traceName: string): PftAction[] => {
-  const tr = WINNING_TRACES[levelKey.toUpperCase()]?.find((t) => t.name === traceName);
-  if (!tr) throw new Error(`trace ${traceName} not in WINNING_TRACES[${levelKey}]`);
-  return [...tr.actions];
-};
+const body = (n: string): PftAction[] =>
+  eval(`[${readFileSync(`/tmp/${n}.json`, 'utf8').replace(/courierId: L\b/g, 'courierId: L2')}]`);
 
 const key = (s: PftPlayState): string =>
   JSON.stringify({ c: s.couriers, p: s.parcels, pi: s.pieces, f: s.ferries, fu: s.fulfilled });
@@ -111,7 +108,7 @@ const cand = (level: PftLevel, st: PftPlayState): PftAction[] => {
 };
 
 const run = (name: string, level: PftLevel, traceName: string, slack: number) => {
-  const trace = body(name, traceName);
+  const trace = body(traceName);
   const cut = Math.max(0, trace.length - WINDOW);
   const engine = new PftEngine();
   engine.begin(level, 'enum');

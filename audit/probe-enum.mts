@@ -6,6 +6,7 @@
 // Run: npx tsx audit/probe-enum.mts
 import { PftEngine, walkGraph } from '../src/engine/pft/engine.js';
 import type { PftAction, PftLevel, PftPlayState } from '../src/engine/pft/types.js';
+import { PFT01_LAST_CROSSING as L01 } from '../src/content/levels/pft01-last-crossing.js';
 import { PFT08_NO_ONE_LEFT_ON_WEST as L08 } from '../src/content/levels/pft08-no-one-left-on-west.js';
 import { PFT09_THREE_USEFUL_PARCELS as L09 } from '../src/content/levels/pft09-three-useful-parcels.js';
 import { PFT10_THE_DETOUR_DIVIDEND as L10 } from '../src/content/levels/pft10-the-detour-dividend.js';
@@ -251,6 +252,7 @@ const levels: [string, PftLevel][] = [
   ['pft-10', L10],
   ['pft-11', L11],
   ['pft-12', L12],
+  ['pft-01', L01],
   ['pft-02', L02],
   ['pft-03', L03],
   ['pft-04', L04],
