@@ -219,6 +219,16 @@ export const PFT10_THE_DETOUR_DIVIDEND: PftLevel = {
  * LevelCard (§II CONTENT-PRODUCTION / §IV.5.2).
  */
 export const PFT10_CARD = {
+  solutionPolicy:
+    'open — two verified plans with different infrastructure signatures ' +
+    '(ferry freight 28 vs span re-set 28, same final state)',
+  naiveApproach:
+    'The direct route is always cheapest — ride the ferry for every ' +
+    'crossing and never touch the deployed bridge until it is sold.',
+  insight:
+    'The detour pays: re-setting the span on the channel socket converts ' +
+    'one move into a crossing the whole east bank walks for free — the ' +
+    'tool can be more valuable as a route than as cargo on time.',
   winningTraceSummary:
     'A — "Ferry freight" (28 moves): the bridge stays bolted to the West ' +
     'creek; Finch stages the cider at Middle, Lark mails the deeds and files ' +
@@ -249,12 +259,13 @@ export const PFT10_CARD = {
     'Count the crossings the bridge itself must make tonight: it only has ' +
       'to be a bridge on ONE side at a time. Where you keep it decides what ' +
       'else has to ride the ferry.',
-    'The channel socket is worked from its East foot — whoever sets the ' +
-      'span must already be across. One ride buys a crossing everyone else ' +
-      'walks for free.',
-    'Plan A: never repack until the end — ferry legs do the work. Plan B: ' +
-      'mail everything on the west bank first, then carry the bridge east ' +
-      'and re-set it — after that there is no capacity problem at all.',
+    '`pack` lifts a piece into your hands and `deploy` stands it on any ' +
+      'socket that accepts its kind — a carried bridge is cargo you still ' +
+      'own, and a deployed span is a crossing everyone walks for free. ' +
+      '`send` moves a staged parcel down the wire with no courier at all.',
+    'Decide where the bridge works tonight before anything rides the ' +
+      'ferry — the channel socket is worked from its East foot, so whoever ' +
+      're-sets it must already be across. That one choice picks your plan.',
   ],
   coopNote:
     'Four distinct contributions either way: a postal runner (Lark), a west ' +

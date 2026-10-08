@@ -160,6 +160,17 @@ export const PFT05_RETURN_TO_SENDER: PftLevel = {
  * LevelCard (§II CONTENT-PRODUCTION / §IV.5.2).
  */
 export const PFT05_CARD = {
+  solutionPolicy:
+    'hybrid — the send-before-decommission spine is fixed; who signs the ' +
+    'pieces into the depot admits two verified schedules (13 / 15 moves)',
+  naiveApproach:
+    'Ride the skiff with the registry — it is a boat, boats carry things. ' +
+    '(A foot ferry refuses freight; the wire is the only ridge crossing ' +
+    'cargo can take.)',
+  insight:
+    'The postal link is load-bearing, not flavor: stage the parcel, send ' +
+    'it, THEN pack the mailbox. Anything still owed beyond the ridge once ' +
+    'the relay leaves is undo-only.',
   winningTraceSummary:
     'A — "Lark posts, Wren receives": Lark crosses the bridge, fetches the registry ' +
     'from West Bank, stages it on the Upstream post, and sends it over the ridge link ' +
@@ -188,9 +199,9 @@ export const PFT05_CARD = {
     'Mailboxes take staged parcels, not carried ones: Lark has to set the registry ' +
       'down on the post before it can fly. Her way home is the bridge — nobody rides ' +
       'the mail.',
-    'Lark carries the registry over bridge and path to the post, drops it, and sends ' +
-      'it to East. Then she packs the mailbox, comes home, and signs both pieces into ' +
-      'the depot; Wren collects the registry at the archives.',
+    'The send must precede the decommission: stage, send, then pack the ' +
+      'relay. Sequence those three and the rest is scheduling — get them ' +
+      'out of order and the link dies with the job undone.',
   ],
   coopNote:
     'Lark owns the remote run — fetch, stage, send, decommission, and home again by ' +

@@ -41,7 +41,6 @@ const unstrands = (events: GameEvent[], orderId: string) =>
 const W = 'courier-1';
 const L = 'courier-2';
 const F3 = 'courier-3';
-const S = 'courier-4';
 const F = 'ferry-1';
 
 // ---------------------------------------------------------------------------

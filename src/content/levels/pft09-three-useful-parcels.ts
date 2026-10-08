@@ -237,6 +237,16 @@ export const PFT09_THREE_USEFUL_PARCELS: PftLevel = {
  * LevelCard (§II CONTENT-PRODUCTION / §IV.5.2).
  */
 export const PFT09_CARD = {
+  solutionPolicy:
+    'hybrid — the tool-to-cargo ordering is fixed, but drop-staging and ' +
+    'freight assignment admit several verified schedules (38 moves)',
+  naiveApproach:
+    'Pack each tool the moment you finish with it — the moving list says ' +
+    'everything ships tonight, so grab it all early.',
+  insight:
+    'Every piece is a tool until its LAST use, then cargo. `drop` staging ' +
+    'decouples the fetch from the ship — a parcel set down on a dock is ' +
+    'already off your hands, waiting for whoever owns the water.',
   winningTraceSummary:
     '"Tools first, cargo after" (38 moves): Lark hikes the orchard path to the ' +
     'relay post, sends the staged records East, packs the relay mailbox and files ' +
@@ -267,10 +277,10 @@ export const PFT09_CARD = {
     'The records are already staged on the relay post: one send, no fetch. ' +
       'The loft only exists while the staircase stands — bring everything ' +
       'down before you lift it.',
-    'Lark: post -> send -> mailbox to the depot -> North post. Finch: loft -> ' +
-      'tapestry down -> pack the stair -> stage it -> dock office. Wren: tea -> ' +
-      'Middle -> West gate. Sparrow: tea, records, tapestry, stair by ferry, ' +
-      'then the bridge — East exit.',
+    'The first decisive commitment is what the ferry carries — stage at ' +
+      'the docks and the boat does the shuttling. Nobody teleports: the ' +
+      'apparent cycle (send needs the post, the loft needs the stair) ' +
+      'breaks once things are set down, not carried.',
   ],
   coopNote:
     'Four distinct contributions: Lark is the postal courier (send + relay ' +

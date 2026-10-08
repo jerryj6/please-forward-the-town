@@ -170,6 +170,16 @@ export const PFT04_THE_UPSTAIRS_ADDRESS: PftLevel = {
  * LevelCard (§II CONTENT-PRODUCTION / §IV.5.2).
  */
 export const PFT04_CARD = {
+  solutionPolicy:
+    'open — two verified plans: the stair stays at the West cliff socket ' +
+    '(18 moves) or is redeployed to the Middle hoist (20)',
+  naiveApproach:
+    'Treat the staircase as scenery — the loft errands look like simple ' +
+    'ferry work until the stair itself appears on the moving list.',
+  insight:
+    'The staircase is cargo too, and the Loft exists only while one ' +
+    'stands. Which socket serves it is a real choice — but whoever is ' +
+    'still aloft when it leaves had better be finished there.',
   winningTraceSummary:
     'A — "Cliff stair": Lark carries the books up the bridge-and-stair path, delivers ' +
     'to the loft tenant, and stays as postmaster; Wren climbs after her, brings the ' +
@@ -200,9 +210,9 @@ export const PFT04_CARD = {
     'The stair has two marked sockets: the West cliff foot and the Middle hoist. ' +
       'Either serves the Loft — choose one. Nobody comes down off the Loft once ' +
       'the stair is packed, so whoever stays aloft should be ending there.',
-    'Send Lark up with the books and leave her at the postbox. Wren climbs for ' +
-      'the gramophone, ships it, then packs the stair at the West foot and sells ' +
-      'it — the bridge is packed and shipped last, from Middle.',
+    'Decide who ends upstairs before the stair moves — someone whose ' +
+      'work is done up there. The stair is lifted once, on purpose: it ' +
+      'cannot come down for anyone still aloft.',
   ],
   coopNote:
     'Lark owns the Loft: books up, then she stays as postmaster — her exit never ' +

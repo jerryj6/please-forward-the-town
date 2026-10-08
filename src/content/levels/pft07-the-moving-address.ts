@@ -172,6 +172,16 @@ export const PFT07_THE_MOVING_ADDRESS: PftLevel = {
  * LevelCard (§II CONTENT-PRODUCTION / §IV.5.2).
  */
 export const PFT07_CARD = {
+  solutionPolicy:
+    'hybrid — the sign-move and file order are fixed, but fetch/deliver ' +
+    'order around it admits several verified schedules (20 moves)',
+  naiveApproach:
+    'Deliver to the address written on the card — the Old Lot is where ' +
+    'the Greene household has always been.',
+  insight:
+    'The address is not a place on the map — it is wherever the sign ' +
+    'stands, and nowhere while the sign is packed. The lane exists only ' +
+    'while the piece that carries it is deployed.',
   winningTraceSummary:
     'Lark lifts the Greene sign off the old fence post at West, ferries it East, and ' +
     'sets it on the new post — the address moves with it; she sails back and walks ' +
@@ -197,9 +207,9 @@ export const PFT07_CARD = {
     'Only the sign posts can hold the sign, and each is worked from its own street ' +
       '— lifted at the West fence, set at the East fence. A packed sign means the ' +
       'Greene lane exists nowhere.',
-    'Lark carries the sign East and sets it on the new post, then comes home by ' +
-      'the West gate. Wren runs the tea set up the new lane while the sign stands, ' +
-      'then ships the bridge and files the sign at the registry — in that order.',
+    'The tea set must be inside before the sign leaves the new post — ' +
+      'the delivery lane exists only while the sign stands. File the sign ' +
+      'at the registry last; every earlier lift is scheduling.',
   ],
   coopNote:
     'Lark owns the sign; Wren owns the cargo. The one coordination rule: nothing ' +

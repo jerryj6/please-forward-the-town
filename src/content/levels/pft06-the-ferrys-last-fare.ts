@@ -148,6 +148,16 @@ export const PFT06_THE_FERRYS_LAST_FARE: PftLevel = {
  * LevelCard (§II CONTENT-PRODUCTION / §IV.5.2).
  */
 export const PFT06_CARD = {
+  solutionPolicy:
+    'open — two verified plans: direct carries (17 moves) or dock-side ' +
+    'staging with the hold doing the shuttling (22)',
+  naiveApproach:
+    'Sign the boat over as soon as your own trips are done — the ' +
+    'harbor-master is waiting and the quay is right there.',
+  insight:
+    'The handover kills the route for everyone, not just for you: every ' +
+    'boat job — people and freight — must land before the signature, and ' +
+    'the hold must ride in empty.',
   winningTraceSummary:
     'A — "Lark sails the freight": Lark ferries the tea crate to the boathouse and the ' +
     'piano to the conservatory herself, then walks home through West gate; Wren packs ' +
@@ -172,9 +182,10 @@ export const PFT06_CARD = {
       'already be done. The ferry handover is the last act of the night.',
     'The skiff can carry one courier plus one parcel — a rider brings her cargo. The ' +
       'hold also takes freight in advance for a courier to pick up on the far shore.',
-    'Lark ferries both parcels herself and walks home by the West gate. Wren packs ' +
-      'the bridge, sails it to the museum, and hands the boat over at the East quay — ' +
-      'hold empty.',
+    'The harbor-master\'s quay is the last act of the night. Everything ' +
+      'that rides the boat — couriers, parcels, the bridge — is scheduled ' +
+      'before that signature; decide who signs and when before anything ' +
+      'is packed.',
   ],
   coopNote:
     'The question to settle before anyone packs a thing: what still needs the boat? ' +

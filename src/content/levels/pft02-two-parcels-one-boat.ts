@@ -134,6 +134,16 @@ export const PFT02_TWO_PARCELS_ONE_BOAT: PftLevel = {
  * LevelCard (§II CONTENT-PRODUCTION / §IV.5.2).
  */
 export const PFT02_CARD = {
+  solutionPolicy:
+    'hybrid — two verified orders of work (the crate rides Lark\'s own ' +
+    'ferry leg, 16 moves; or changes hands as staged cargo on Middle, 18)',
+  naiveApproach:
+    'Shuttle everything by ferry in arrival order — the boat is right ' +
+    'there and the bridge can always be sold at the end.',
+  insight:
+    'The exits are divergent: Lark\'s dock sits past the bridge that the ' +
+    'museum is owed. Whoever still needs the far bank settles it before ' +
+    'the plank leaves its socket — the bridge is the last thing sold.',
   winningTraceSummary:
     'A — "Lark ferries the crate": Wren ferries the lantern to the orchard and returns the ' +
     'ferry; Lark walks the orchard path to North, ferries the crate to the greenhouse, ' +
@@ -159,9 +169,9 @@ export const PFT02_CARD = {
     'The boat takes one parcel per crossing, and a courier\'s carried parcel uses the same ' +
       'slot. Someone can ferry the crate themselves, or stage it on Middle and let Wren ' +
       'ship it — then send Lark home before the bridge goes.',
-    'Sequence that works: Wren ferries the lantern and returns the boat; Lark walks to ' +
-      'North, ferries the crate over, rides back, and walks home to the North dock; only ' +
-      'then does Wren pack the bridge and ferry it to the museum.',
+    'The decisive commitment is who ferries the crate — their own ride, or ' +
+      'a staged Middle handoff. Everything after that is scheduling: sell ' +
+      'the plank last, once Lark is home.',
   ],
   coopNote:
     'Two real jobs in parallel: Wren owns the ferry line (lantern out, boat back), Lark ' +

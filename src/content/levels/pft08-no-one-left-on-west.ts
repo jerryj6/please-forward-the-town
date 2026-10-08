@@ -205,6 +205,16 @@ export const PFT08_NO_ONE_LEFT_ON_WEST: PftLevel = {
  * LevelCard (§II CONTENT-PRODUCTION / §IV.5.2).
  */
 export const PFT08_CARD = {
+  solutionPolicy:
+    'hybrid — the extraction order is constrained but the assignment of ' +
+    'errands to couriers admits several verified schedules (21 moves)',
+  naiveApproach:
+    'Everyone rides the ferry out — it is the obvious way across. (One ' +
+    'rider per ferry: the other three need a different crossing.)',
+  insight:
+    'The Town Span is how four couriers end on the far shore of a ' +
+    'one-rider ferry — it must outlive every eastbound errand. The plank ' +
+    'bridge and the boat are cargo and can leave first.',
   winningTraceSummary:
     '"Everyone across before the sale" (21 moves): Wren runs the Upland fetch ' +
     '(plank bridge, orchard path) and walks the sunstone over the Town Span to the ' +
@@ -233,10 +243,9 @@ export const PFT08_CARD = {
     'Work west to east: Upland and Market errands first, then the bridge ' +
       'carried over the span, then the ferry run — and only then the ' +
       'paperwork.',
-    'Wren: north fetch, span, archives, done. Lark: ledger to the annex, ' +
-      'back, pack the plank bridge, museum, Slip. Finch: engine on the ' +
-      'ferry, drydock, Slip. Sparrow: sign the ferry at East, lift the ' +
-      'span, file it at the foundry.',
+    'Keep the Town Span standing until everyone who needs the far shore ' +
+      'is there — it is the crossing for whoever does not ride. Everything ' +
+      'else can leave before it; it is the last piece to go.',
   ],
   coopNote:
     'Four distinct jobs, one shared spine: Wren owns the Upland fetch, Lark ' +

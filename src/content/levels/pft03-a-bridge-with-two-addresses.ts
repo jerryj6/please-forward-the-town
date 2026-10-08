@@ -133,6 +133,16 @@ export const PFT03_A_BRIDGE_WITH_TWO_ADDRESSES: PftLevel = {
  * LevelCard (§II CONTENT-PRODUCTION / §IV.5.2).
  */
 export const PFT03_CARD = {
+  solutionPolicy:
+    'hybrid — the redeploy-and-ship spine is fixed, but the fetch order ' +
+    'around it admits several verified schedules (17 moves)',
+  naiveApproach:
+    'Treat the deployed bridge as bolted down — the North creek has no ' +
+    'bridge of its own, so the crate looks unreachable.',
+  insight:
+    'A packed bridge is cargo you still own — and you may re-deploy it. ' +
+    'One bridge can serve the West creek, then the North creek, then ' +
+    'ride to the museum: three jobs, one piece.',
   winningTraceSummary:
     'Wren ferries the lantern to the orchard and returns; packs the bridge at Middle ' +
     '(West creek freed), re-sets it on the North creek socket, crosses, fetches the ' +
@@ -156,8 +166,9 @@ export const PFT03_CARD = {
       'bridge in town is busy at the West crossing. Nothing else reaches North Field.',
     'A packed bridge is cargo you still own. Once the lantern is aboard, the West ' +
       'bank is done being useful — the bridge can be lifted and set somewhere else.',
-    'Pack the bridge at Middle and re-set it on the North creek socket. Cross, fetch ' +
-      'the crate, then lift it a second time at Middle and ferry it to the museum.',
+    'The bridge works a shift: it is owed to the museum, but it owes the ' +
+      'North creek a crossing first. Plan around one piece doing three ' +
+      'jobs — lift, re-set, lift — not around finding a second bridge.',
   ],
   coopNote:
     'Solo contract — Wren does every lift. In a shared session, split the planning: ' +
