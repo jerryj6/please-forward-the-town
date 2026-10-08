@@ -1,0 +1,51 @@
+{
+ "name": "please-forward-the-town",
+ "version": "0.1.0",
+ "private": true,
+ "type": "module",
+ "description": "The Record Stands \u2014 a cooperative causality puzzle. Change the disaster. Keep every witness right.",
+ "engines": {
+  "node": ">=20"
+ },
+ "scripts": {
+  "dev": "vite",
+  "dev:server": "tsx src/server/main.ts",
+  "build": "vite build && tsc -p tsconfig.server.json && node scripts/embed-build-id.mjs",
+  "check:source": "tsx scripts/check-source.ts",
+  "check:static": "tsc --noEmit && eslint src tests scripts --max-warnings 0 && tsx scripts/validate-content.ts",
+  "test:unit": "vitest run tests/unit",
+  "test:properties": "vitest run tests/properties",
+  "test:campaign": "vitest run tests/campaign",
+  "test:depth": "vitest run tests/depth",
+  "test:network": "vitest run tests/network",
+  "test:e2e": "playwright test",
+  "test:a11y": "playwright test --config playwright.a11y.config.ts",
+  "test:visual": "playwright test --config playwright.visual.config.ts",
+  "test:performance": "tsx tests/performance/run.ts",
+  "audit:assets": "tsx scripts/audit-assets.ts",
+  "audit:release": "tsx scripts/audit-release.ts",
+  "verify:production": "tsx scripts/verify-production.ts",
+  "verify:all": "tsx scripts/verify-all.ts",
+  "start": "node dist-server/server/main.js"
+ },
+ "dependencies": {
+  "pixi.js": "^8.5.2",
+  "react": "^18.3.1",
+  "react-dom": "^18.3.1",
+  "ws": "^8.18.0"
+ },
+ "devDependencies": {
+  "@types/react": "^18.3.12",
+  "@types/react-dom": "^18.3.1",
+  "@types/ws": "^8.5.12",
+  "@vitejs/plugin-react": "^4.3.3",
+  "eslint": "^9.14.0",
+  "typescript": "~5.6.3",
+  "typescript-eslint": "^8.12.2",
+  "vite": "^5.4.10",
+  "vitest": "^2.1.4",
+  "fast-check": "^3.23.1",
+  "@playwright/test": "^1.48.2",
+  "tsx": "^4.19.2"
+ }
+}
