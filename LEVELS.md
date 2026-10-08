@@ -374,6 +374,13 @@ freight run, Sparrow owns the far-shore paperwork (ferry sale, span lift).
 The agreement that matters: nobody lifts a bridge while a teammate still
 needs it — extraction is a shared resource.
 
+**Solution space (seeded-window enumeration, automated playtest).** Full
+DFS is intractable at four couriers (800k states capped before one
+completion). Bounding to the verified trace's final-8 window (bound 23):
+24 distinct completions — **6 share the optimal 21 moves**, 8 at 22,
+10 at 23. The optimum is a family of extraction schedules, not a single
+one — matches the `open` solution policy.
+
 ---
 
 ## PFT-09 — Three Useful Parcels (`pft-09`)
@@ -429,6 +436,12 @@ packs the plank bridge, sails it to the museum, and closes the East exit.
 packing), Wren is the market runner (west fetch + staging), Sparrow is the
 ferryman and closer (every freight leg + the bridge sale). Exits are
 divergent by design — only the last rider ends East.
+
+**Solution space (seeded-window enumeration).** Final-8 window of the
+verified trace, bound 40: 7 completions — 2 optimal 38-move plans, 5 at
+40. **No 39-move plan exists** — same rung-gap pattern as PFT-03's
+missing 18: the fix a mistake costs a two-hop detour, so slack lands in
+even numbers.
 
 ---
 
@@ -500,6 +513,11 @@ tests/unit/pft08-10.test.ts. Curated here so players who find it meet a
 documented plan, not an accident — and so par-beating schedules are
 expected.
 
+**Solution space (seeded-window enumeration).** Final-8 window of trace
+A, bound 30: 13 completions — 2 at 28, 3 at 29, 8 at 30. The window
+confirms both verified 28s in its neighborhood; plan C diverges too
+early to appear (documented above).
+
 ---
 
 ## PFT-11 — Mail the Post Office (`pft-11`)
@@ -560,6 +578,12 @@ The forced coupling: the plank bridge is both Wren's route to the sign's
 old post and cargo owed East — whether it can be packed depends on whether
 Finch has already lifted the sign, so teardown is a sequencing decision,
 not just a division of labor.
+
+**Solution space (seeded-window enumeration).** Final-8 window, bound
+30 — hit the 1M-state cap mid-window with 21 completions recorded (4 at
+29, 17 at 30); the 28-optimum wasn't reached before the cap. Honest
+bound: the office-move endgame is the densest branch point in the
+campaign.
 
 ---
 
@@ -627,3 +651,8 @@ freight). The forced coupling is the teardown order itself: every crossing
 is shared infrastructure AND cargo, so "can I pack?" is always a team
 question — the plan fails unless the group agrees the west bank is done
 before the last bridge lifts.
+
+**Solution space (seeded-window enumeration).** Final-8 window of trace
+B, bound 46: 23 completions — **4 optimal 44-move plans**, 7 at 45,
+12 at 46. Four distinct optimal endings — the widest optimal family in
+the campaign.

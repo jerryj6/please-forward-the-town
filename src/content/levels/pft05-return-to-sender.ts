@@ -206,5 +206,7 @@ export const PFT05_CARD = {
   coopNote:
     'Lark owns the remote run — fetch, stage, send, decommission, and home again by ' +
       'land. Wren owns the water — receive and deliver. The handoff between them is a ' +
-      'staged parcel on a dock, and neither courier ever touches the other\'s route.',
+      'staged parcel on a dock, and neither courier ever touches the other\'s route. ' +
+      'Bounded enumeration confirms a role-swap optimum: the bridge pack and sale ' +
+      'can sit with either courier — reassigning it costs the same 13 moves.',
 } as const;

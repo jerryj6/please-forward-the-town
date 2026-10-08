@@ -6,6 +6,11 @@
 // Run: npx tsx audit/probe-enum.mts
 import { PftEngine, walkGraph } from '../src/engine/pft/engine.js';
 import type { PftAction, PftLevel, PftPlayState } from '../src/engine/pft/types.js';
+import { PFT08_NO_ONE_LEFT_ON_WEST as L08 } from '../src/content/levels/pft08-no-one-left-on-west.js';
+import { PFT09_THREE_USEFUL_PARCELS as L09 } from '../src/content/levels/pft09-three-useful-parcels.js';
+import { PFT10_THE_DETOUR_DIVIDEND as L10 } from '../src/content/levels/pft10-the-detour-dividend.js';
+import { PFT11_MAIL_THE_POST_OFFICE as L11 } from '../src/content/levels/pft11-mail-the-post-office.js';
+import { PFT12_EVERYTHING_MUST_GO as L12 } from '../src/content/levels/pft12-everything-must-go.js';
 import { PFT02_TWO_PARCELS_ONE_BOAT as L02 } from '../src/content/levels/pft02-two-parcels-one-boat.js';
 import { PFT03_A_BRIDGE_WITH_TWO_ADDRESSES as L03 } from '../src/content/levels/pft03-a-bridge-with-two-addresses.js';
 import { PFT04_THE_UPSTAIRS_ADDRESS as L04 } from '../src/content/levels/pft04-the-upstairs-address.js';
@@ -241,6 +246,11 @@ const enumerate = (level: PftLevel) => {
 };
 
 const levels: [string, PftLevel][] = [
+  ['pft-08', L08],
+  ['pft-09', L09],
+  ['pft-10', L10],
+  ['pft-11', L11],
+  ['pft-12', L12],
   ['pft-02', L02],
   ['pft-03', L03],
   ['pft-04', L04],
