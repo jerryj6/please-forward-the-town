@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { PointerEvent } from "react";
 import type { Input, SimEvent, World, WorldSnapshot } from "../rt/types.js";
 import { createWorld, snapshot, step } from "../rt/sim.js";
@@ -117,9 +117,13 @@ function reconcilePrediction(world: World, authoritative: WorldSnapshot): void {
   }
 }
 
+function simEventId(event: SimEvent, tick: number): string {
+  return `${tick}-${event.type}-${"playerId" in event ? event.playerId : ""}`;
+}
+
 function playSimEvents(events: SimEvent[], tick: number): void {
   for (const event of events) {
-    const eventId = `${tick}-${event.type}-${"playerId" in event ? event.playerId : ""}`;
+    const eventId = simEventId(event, tick);
     switch (event.type) {
       case "pickup": pftAudio.play("parcel.pickup", eventId); break;
       case "deploy": pftAudio.play("piece.deploy", eventId); break;
@@ -186,10 +190,55 @@ function GameScreen({
   );
   const [paused, setPaused] = useState(false);
   const [joystickPosition, setJoystickPosition] = useState({ x: 0, y: 0 });
+  const [toasts, setToasts] = useState<Array<{ id: number; text: string }>>([]);
+  const [floodBannerVisible, setFloodBannerVisible] = useState(false);
+  const [floodEventSeen, setFloodEventSeen] = useState(false);
+  const toastSequence = useRef(0);
+  const toastTimers = useRef(new Map<number, number>());
+  const floodBannerTimer = useRef<number | null>(null);
+  const handledEvents = useRef(new Set<string>());
 
   onFinishRef.current = onFinish;
   onExitRef.current = onExit;
   onRestartRef.current = onRestart;
+  const showToast = useCallback((text: string): void => {
+    const id = ++toastSequence.current;
+    setToasts((current) => [...current, { id, text }]);
+    const timer = window.setTimeout(() => {
+      toastTimers.current.delete(id);
+      setToasts((current) => current.filter((toast) => toast.id !== id));
+    }, 1500);
+    toastTimers.current.set(id, timer);
+  }, []);
+  const showFloodBanner = useCallback((): void => {
+    setFloodEventSeen(true);
+    setFloodBannerVisible(true);
+    if (floodBannerTimer.current !== null) window.clearTimeout(floodBannerTimer.current);
+    floodBannerTimer.current = window.setTimeout(() => {
+      floodBannerTimer.current = null;
+      setFloodBannerVisible(false);
+    }, 2000);
+  }, []);
+  const handleSimEvents = useCallback((events: SimEvent[], tick: number): void => {
+    const freshEvents = events.filter((event) => {
+      const id = simEventId(event, tick);
+      if (handledEvents.current.has(id)) return false;
+      handledEvents.current.add(id);
+      return true;
+    });
+    playSimEvents(freshEvents, tick);
+    for (const event of freshEvents) {
+      if (event.type === "flood") showFloodBanner();
+      if (event.type === "deliver") showToast(`Delivered to ${event.label}`);
+      if (event.type === "splash" && event.playerId === playerId) showToast("Splash! Back to the dock");
+    }
+  }, [playerId, showFloodBanner, showToast]);
+
+  useEffect(() => () => {
+    for (const timer of toastTimers.current.values()) window.clearTimeout(timer);
+    if (floodBannerTimer.current !== null) window.clearTimeout(floodBannerTimer.current);
+  }, []);
+
   const updateFromKeys = (): void => {
     const current = keys.current;
     const x = Number(current.has("ArrowRight") || current.has("d") || current.has("D"))
@@ -269,7 +318,7 @@ function GameScreen({
         const events = step(current, new Map([[playerId, nextInput]]));
         const next = snapshot(current);
         setWorld(next);
-        playSimEvents(events, current.tick);
+        handleSimEvents(events, current.tick);
         if (current.phase !== "playing" && !handledFinish.current) {
           handledFinish.current = true;
           onFinishRef.current(next);
@@ -309,7 +358,7 @@ function GameScreen({
       }
     }, 50);
     return () => window.clearInterval(timer);
-  }, [mode, paused, playerId, serverWorld, socket]);
+  }, [handleSimEvents, mode, paused, playerId, serverWorld, socket]);
 
   useEffect(() => {
     if (mode !== "online" || !serverWorld) return;
@@ -350,8 +399,8 @@ function GameScreen({
   }, [mode, playerId, serverWorld]);
 
   useEffect(() => {
-    if (mode === "online" && networkEvents) playSimEvents(networkEvents.list, networkEvents.tick);
-  }, [mode, networkEvents]);
+    if (mode === "online" && networkEvents) handleSimEvents(networkEvents.list, networkEvents.tick);
+  }, [handleSimEvents, mode, networkEvents]);
 
   const onJoystickDown = (event: PointerEvent<HTMLDivElement>): void => {
     event.currentTarget.setPointerCapture(event.pointerId);
@@ -382,6 +431,16 @@ function GameScreen({
   };
 
   const seconds = Math.ceil(world.timeRemainingTicks / 20);
+  const ticksUntilFlood = level.sandbarFloodsAtSec === undefined
+    ? null
+    : world.timeRemainingTicks - level.sandbarFloodsAtSec * 20;
+  const sandbarWarningSeconds = ticksUntilFlood !== null &&
+    !world.sandbarFlooded &&
+    !floodEventSeen &&
+    ticksUntilFlood > 0 &&
+    ticksUntilFlood <= 10 * 20
+    ? Math.ceil(ticksUntilFlood / 20)
+    : null;
   const carriedItem = world.players.find((player) => player.id === playerId)?.carrying;
 
   return (
@@ -404,6 +463,11 @@ function GameScreen({
               <b aria-label={order.fulfilled ? "delivered" : "waiting"}>{order.fulfilled ? "✓" : "·"}</b>
             </div>
           ))}
+          {sandbarWarningSeconds !== null && (
+            <span className="sandbar-warning-chip" role="status" aria-live="polite">
+              Sandbar floods in {sandbarWarningSeconds}
+            </span>
+          )}
         </div>
         <div className="hud-actions">
           <button className="icon-button" type="button" onClick={onToggleMute} aria-label={muted ? "Turn sound on" : "Mute sound"} title={muted ? "Sound on" : "Mute"}>
@@ -414,6 +478,10 @@ function GameScreen({
           </button>
         </div>
       </header>
+      <div className="hud-notifications" aria-live="polite">
+        {floodBannerVisible && <div className="hud-notification flood-banner">The sandbar is under!</div>}
+        {toasts.map((toast) => <div className="hud-notification" key={toast.id}>{toast.text}</div>)}
+      </div>
       <div className="courier-roster" aria-label="Crew">
         {Object.entries(playerNames).map(([id, player]) => (
           <div

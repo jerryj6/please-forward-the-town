@@ -271,6 +271,63 @@ describe("real-time simulation", () => {
     expect(step(world, new Map()).some((event) => event.type === "flood")).toBe(false);
   });
 
+  it("leaves the L2 plank deployed or restores it to the west socket after a sandbar splash", () => {
+    for (const layOnEast of [false, true]) {
+      const world = createWorld(LEVELS[1]!, ["solo"]);
+      moveTo(world, "solo", 3, 2);
+      const pickupEvents = press(world, "solo", 100);
+      const plank = [...world.items.values()].find((item) => item.kind === "plank" && item.spawn.x === 4)!;
+      const otherPlank = [...world.items.values()].find((item) => item.kind === "plank" && item.id !== plank.id)!;
+      expect(pickupEvents).toContainEqual({
+        type: "pickup",
+        playerId: "solo",
+        itemId: plank.id,
+        itemKind: "plank",
+      });
+
+      moveThrough(world, "solo", [3, 4], [3, 5], [11, 5], [11, 4], [11, 3], [12, 3]);
+      const player = world.players.get("solo")!;
+      expect(planAction(world, player)).toEqual({
+        verb: "deploy",
+        x: 13,
+        y: 2,
+        itemId: plank.id,
+      });
+
+      if (layOnEast) {
+        expect(press(world, "solo")).toContainEqual({
+          type: "deploy",
+          playerId: "solo",
+          itemId: plank.id,
+          x: 13,
+          y: 2,
+        });
+      }
+
+      moveThrough(world, "solo", [11, 3], [11, 4], [11, 5]);
+      expect(player.carrying).toBe(layOnEast ? null : plank.id);
+      const floodThreshold = world.level.sandbarFloodsAtSec! * 20;
+      while (world.timeRemainingTicks > floodThreshold + 1) step(world, new Map());
+      const floodEvents = step(world, new Map());
+      expect(floodEvents).toContainEqual({ type: "flood" });
+      expect(floodEvents).toContainEqual({ type: "splash", playerId: "solo" });
+
+      for (let tick = 0; tick < 40; tick += 1) step(world, new Map());
+      expect(player.state).toBe("normal");
+      expect(player.carrying).toBeNull();
+      expect(player.pos).toEqual({ x: 3500, y: 2500 });
+      expect(plank.state).toBe("deployed");
+      expect(plank.pos).toEqual(layOnEast ? { x: 13, y: 2 } : { x: 4, y: 2 });
+      expect(otherPlank.state).toBe("deployed");
+      expect(otherPlank.pos).toEqual(otherPlank.spawn);
+      expect([...world.items.values()].filter((item) => item.kind === "plank").every((item) => item.state === "deployed")).toBe(true);
+      expect(world.sockets.get(layOnEast ? "13,2" : "4,2")).toBe(plank.id);
+      expect(world.sockets.has("4,2")).toBe(!layOnEast);
+      expect(world.sockets.has("13,2")).toBe(layOnEast);
+      expect(world.sockets.get(`${otherPlank.spawn.x},${otherPlank.spawn.y}`)).toBe(otherPlank.id);
+    }
+  });
+
   it("does not place a dropped item on a sandbar", () => {
     const world = createWorld(DROP_TEST_LEVEL, ["solo"]);
     moveTo(world, "solo", 2, 1);
