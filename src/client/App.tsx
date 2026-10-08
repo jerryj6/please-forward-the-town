@@ -35,7 +35,7 @@ const LEVELS: { level: PftLevel; chapter: string; blurb: string }[] = LEVEL_DEFS
 );
 
 export default function App() {
-  const [screen, setScreen] = useState<"title" | "select" | "play" | "lobby">("title");
+  const [screen, setScreen] = useState<"title" | "select" | "play" | "lobby" | "credits">("title");
   const [level, setLevel] = useState<PftLevel>(LEVEL_DEFS[0].def);
   const net = useRef<RoomClient | null>(null);
   const netState = useRef<{ setGs?: (s: PftPlayState) => void; levelId?: string }>({});
@@ -77,8 +77,27 @@ export default function App() {
           <button type="button" className="ghost" data-testid="play-coop" onClick={() => setScreen("lobby")}>
             Crew up
           </button>
+          <button type="button" className="ghost" data-testid="show-credits" onClick={() => setScreen("credits")}>
+            Credits
+          </button>
           {netErr && <p className="fail">{netErr}</p>}
         </div>
+      </main>
+    );
+  }
+
+  if (screen === "credits") {
+    return (
+      <main className="select-screen">
+        <h1>Credits</h1>
+        <p>Please Forward the Town — an infrastructure-is-cargo logistics puzzle in twelve contracts.</p>
+        <ul>
+          <li>A Devin production for the AI Skills Studio Challenge.</li>
+          <li>Design, engine, interface, and levels built in the open; no external art or audio assets — every cue and image is generated in-repo.</li>
+          <li>Engine: deterministic courier-and-ferry simulation over a shared valley route. Multiplayer: live rooms over WebSocket.</li>
+          <li>The mail goes through; the town keeps what it ships.</li>
+        </ul>
+        <button type="button" className="ghost" onClick={() => setScreen("title")}>Back</button>
       </main>
     );
   }
