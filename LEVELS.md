@@ -464,3 +464,131 @@ that the crossing itself becomes cargo.
 closer who carries the bridge sale (Wren). In plan A the ferryman is the
 bottleneck role; in plan B the span-setter is — split the jobs before the
 first pack.
+
+---
+
+## PFT-11 — Mail the Post Office (`pft-11`)
+
+*The post office isn't a place on the map tonight — it's wherever the sign
+is standing. You can't mail a post office; somebody shoulders the sign and
+walks it across both crossings to the new post.*
+
+Finale chapter: the extraction destination itself moves. The two office
+lanes are `mountedOn` the post-office sign — whichever post it stands on,
+that lane is in town; packed in a satchel, the office is nowhere at all.
+Relocating the destination has to happen while a crossing still stands to
+fetch it: the plank bridge owed to the museum is also the only way back
+West — sell it first and the sign is marooned forever (`none` — the
+hardest failure class).
+
+**Verified trace (28 moves, par).** Lark hikes the orchard path, mails the
+postmaster's mailbag East, packs the relay mailbox and files it at the
+Middle depot, then carries the granite to the Slip monument. Finch lifts
+the Post Office sign at the old post and carries it over both crossings to
+stand it on the new post at the Slip — the office is nowhere while it
+rides in his satchel. Wren fetches the cider to the East tavern, walks
+back, packs the plank bridge and ships it to the museum. Sparrow lifts the
+Town Span at its East foot for the foundry, collects the mailed mailbag,
+and hands it to the postmaster at the moved office — then all four
+couriers step into the new office lane together.
+
+**Designed wrong approaches.**
+1. *Mail the post office:* `send` on the sign is refused — "only parcels
+   travel postal links". Somebody carries it.
+2. *Moving day underfoot:* the sign will not pack while a courier stands
+   on the old office lane — "cannot pack" (PFT-006).
+3. *The dead address:* the mailbag at the old office is refused — "no open
+   order" — and once the sign moves the lane itself is gone.
+4. *Office closed:* while the sign rides packed, the office exists nowhere
+   — every exit is unachievable (`redeploy` while carried) and travel to
+   it is refused "no active connection".
+5. *Teardown before the move:* pack the plank bridge while the sign still
+   stands on the old post — the sign is unreachable, every exit classifies
+   `none` (undo restores it to `redeploy`).
+
+**Hint ladder.**
+1. The office and the sign are the same object — the exits and the
+   postmaster live wherever the sign stands, and nowhere while it rides in
+   a satchel.
+2. The sign is a piece, not a place: `pack` lifts it, `deploy` stands it —
+   and no wire will carry it. Each post answers only to its own street
+   end.
+3. Move the destination before you sell the way there: the sign must cross
+   the creek while a bridge still stands — decide who shoulders it before
+   the plank bridge becomes cargo.
+
+**Coop note.** Lark is the postal runner (send + relay decommission +
+monument leg), Finch is the sign-bearer (the only job that touches the
+moving address), Wren is the west runner (cider + plank-bridge sale),
+Sparrow is the east receiver (span sale + the final postmaster delivery).
+The forced coupling: the plank bridge is both Wren's route to the sign's
+old post and cargo owed East — whether it can be packed depends on whether
+Finch has already lifted the sign, so teardown is a sequencing decision,
+not just a division of labor.
+
+---
+
+## PFT-12 — Everything Must Go (`pft-12`)
+
+*Everything crosses tonight — parcels, pieces, the boat, the office
+itself. The only question that matters is what must still be a tool
+before it becomes cargo.*
+
+The finale: complete the moving town without stranding its delivery team.
+Every taught category is on the board — two bridges, the cliff staircase,
+the relay mailbox and postal wire, the packet ferry (for sale, empty
+hold), and the post-office sign that decides where everyone finishes. Five
+parcels out, four pieces sold, the boat signed over, the office moved —
+and all four couriers inside it simultaneously. Two verified plans with
+different infrastructure signatures, honestly priced: Plan A 46 moves, Plan
+B 44 (par).
+
+**Verified trace A — "Office first" (46 moves).** Finch lifts the sign at
+once and stands it on the new post; the office stays open all night. Lark
+mails the records, files the mailbox, then carries the mailbag by hand to
+the postmaster. Finch also ferry-freights the tea (load/ride/unload).
+Wren brings the tapestry down the stair, packs the staircase for the
+observatory, then packs the plank bridge for the museum. Sparrow takes the
+granite and the records off the quay, lifts the span, and signs the boat
+over. Everyone walks in.
+
+**Verified trace B — "Close the office last" (44 moves, par).** Both
+mailbag and records go down the wire; Finch packs the sign and rides it
+east on the ferry's last sail, keeping it in his satchel through the
+entire teardown — Wren takes the loft, the staircase, the granite and the
+plank bridge; Sparrow takes the tea, the span and the boat — and only when
+every order is settled does Finch stand the sign on the new post and
+everyone walk into the office.
+
+**Designed wrong approaches.**
+1. *Mail the post office:* `send` on the sign is refused — "only parcels
+   travel postal links".
+2. *Teardown before the move:* a bridge packed (let alone sold) while the
+   sign still stands on the old post maroons the sign — the exits classify
+   `none`, the strongest failure (west-side cargo stays `redeploy`).
+3. *The dead address:* mailbag at the old office — "no open order"; and a
+   courier clocking out on the old lane finishes nothing.
+4. *Sold boat, full hold:* the harbor-master refuses a loaded ferry —
+   "hold must be empty".
+5. *Occupied structure:* neither the staircase nor the sign packs while
+   someone (or something) stands on what it carries (PFT-006).
+
+**Hint ladder.**
+1. Every obligation and every tool is the same short list tonight: the
+   loft needs the staircase, the wire needs the mailbox, the west bank
+   needs the plank bridge — and the exits need the office.
+2. Each piece is a tool in one window and cargo in another: `send` before
+   `pack`, fetch before `pack`, and `hand_over_ferry` only after the hold
+   is empty. The sign is `pack`/`deploy` like the rest.
+3. Choose when the office moves — that single commitment shapes the whole
+   night. The one thing that can never happen: a bridge sold while the
+   sign still stands on the west bank.
+
+**Coop note.** Four distinct contributions in either plan: a postal runner
+(Lark — the wire and the mailbag), a sign-bearer (Finch — the moving
+address itself), a loft-and-teardown runner (Wren — stair, granite, plank
+bridge), and an east-side receiver (Sparrow — span, boat, quay-side
+freight). The forced coupling is the teardown order itself: every crossing
+is shared infrastructure AND cargo, so "can I pack?" is always a team
+question — the plan fails unless the group agrees the west bank is done
+before the last bridge lifts.
